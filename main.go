@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	pubsub "github.com/akakream/sailorsailor/pubsub"
+	pubsub "github.com/akakream/sailorsailor/ipfsPubsub"
 	shell "github.com/ipfs/go-ipfs-api"
 )
 
