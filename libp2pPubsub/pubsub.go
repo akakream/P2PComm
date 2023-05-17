@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"sync"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/libp2p/go-libp2p"
@@ -40,9 +42,7 @@ func Run() {
 	topicName := "babuska1"
 	pubsubClient := NewPubSubClient(ctx)
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go pubsubClient.Sub(topicName, ctx, wg)
+	go pubsubClient.Sub(topicName, ctx)
 	time.Sleep(5 * time.Second)
 	go Listen(pubsubClient.Channel)
 
@@ -53,9 +53,7 @@ func Run() {
 	go pubsubClient.Pub(ctx, topicName, "lolwut5")
 	go pubsubClient.Pub(ctx, topicName, "lolwut6")
 
-	wg.Wait()
-	pubsubClient.Unsub(topicName)
-
+	listenShutdown(pubsubClient)
 }
 
 func NewPubSubClient(ctx context.Context) *PubSubClient {
@@ -92,7 +90,7 @@ func (c *PubSubClient) Pub(ctx context.Context, topicName string, data string) {
 	}
 }
 
-func (c *PubSubClient) Sub(topicName string, ctx context.Context, wg *sync.WaitGroup) {
+func (c *PubSubClient) Sub(topicName string, ctx context.Context) {
 	topic, err := c.Ps.Join(topicName)
 	if err != nil {
 		log.Fatal(err)
@@ -112,7 +110,6 @@ func (c *PubSubClient) Sub(topicName string, ctx context.Context, wg *sync.WaitG
 		}
 		c.Channel <- msg
 	}
-	wg.Done()
 }
 
 func (c *PubSubClient) Unsub(topicName string) {
@@ -125,4 +122,18 @@ func (c *PubSubClient) Unsub(topicName string) {
 	} else {
 		log.Printf("There is no subscription for the topic: %s", topicName)
 	}
+}
+
+func (c *PubSubClient) shutdown() {
+	for _, topic := range c.SubscribedTopics {
+		c.Unsub(topic.Topic.String())
+	}
+}
+
+func listenShutdown(c *PubSubClient) {
+	quitChannel := make(chan os.Signal, 1)
+	signal.Notify(quitChannel, syscall.SIGINT, syscall.SIGTERM)
+	<-quitChannel
+
+	c.shutdown()
 }
