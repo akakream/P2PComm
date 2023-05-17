@@ -1,8 +1,10 @@
-package pubsub
+package ipfsPubsub
 
 import (
+	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	shell "github.com/ipfs/go-ipfs-api"
 )
@@ -19,6 +21,39 @@ type Config struct {
 
 type Topic struct {
 	Subscription *shell.PubSubSubscription
+}
+
+func Listen(channel chan *shell.Message) {
+	for {
+		select {
+		case msg := <-channel:
+			fmt.Println(string(msg.Data))
+			fmt.Println(msg.TopicIDs)
+		default:
+		}
+	}
+}
+
+func Run() {
+	sh := shell.NewShell("localhost:" + "5001")
+	_ = sh
+
+	topicName := "babuska1"
+	pubsubClient := NewPubSubClient(&Config{Port: "5001"})
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go pubsubClient.Sub(topicName, wg)
+	time.Sleep(5 * time.Second)
+	go Listen(pubsubClient.Channel)
+	go pubsubClient.Pub(topicName, "lolwut1")
+	go pubsubClient.Pub(topicName, "lolwut2")
+	go pubsubClient.Pub(topicName, "lolwut3")
+	go pubsubClient.Pub(topicName, "lolwut4")
+	go pubsubClient.Pub(topicName, "lolwut5")
+	go pubsubClient.Pub(topicName, "lolwut6")
+
+	wg.Wait()
+	pubsubClient.Unsub(topicName)
 }
 
 func NewPubSubClient(config *Config) *PubSubClient {
