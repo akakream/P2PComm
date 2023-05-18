@@ -24,7 +24,7 @@ type Server struct {
 	port       string
 	Servertype ServerType
 	quitch     chan struct{}
-	client     *p2p.P2PClient
+	Client     p2p.P2PClient
 }
 
 type PubRequestBody struct {

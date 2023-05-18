@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 )
@@ -22,16 +21,13 @@ func (s *Server) handleSubscribe(w http.ResponseWriter, r *http.Request) error {
 		return apiError{Err: "body must be json", Status: http.StatusBadRequest}
 	}
 
-	if bodyJson.Topic == "" {
+	topicName := bodyJson.Topic
+	if topicName == "" {
 		return apiError{Err: "empty topic", Status: http.StatusBadRequest}
 	}
 
 	// Logic
-	if s.Servertype == ServerTypeLibp2p {
-		fmt.Println("libp2p")
-	} else {
-		fmt.Println("ipfs")
-	}
+	s.Client.Sub(topicName)
 
 	return writeJSON(w, http.StatusOK, "Subscribed to the topic "+bodyJson.Topic)
 }

@@ -41,7 +41,7 @@ func NewServer(port string, serverType string) *Server {
 	return &Server{
 		port:       port,
 		Servertype: servertype,
-		client:     &client,
+		Client:     client,
 		quitch:     make(chan struct{}),
 	}
 }
