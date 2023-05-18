@@ -26,12 +26,18 @@ var serverCmd = &cobra.Command{
 		if err != nil {
 			panic(err)
 		}
-		s := server.NewServer(port)
+		serverType, err := cmd.PersistentFlags().GetString("servertype")
+		if err != nil {
+			panic(err)
+		}
+
+		s := server.NewServer(port, serverType)
 		s.Start()
 	},
 }
 
 func init() {
 	serverCmd.PersistentFlags().StringP("port", "p", "3000", "give the port where the server runs")
+	serverCmd.PersistentFlags().StringP("servertype", "s", "libp2p", "give the type of the server: libp2p or ipfs")
 	rootCmd.AddCommand(serverCmd)
 }

@@ -11,7 +11,7 @@ make build
 ## Run
 
 ```
-./bin/app server --port=3000
+./bin/app server --port=3000 --servertype=libp2p
 ```
 
 Start ipfs daemon with pubsub enabled in another terminal to run the ipfs pubsub.

@@ -4,18 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-)
 
-type apiError struct {
-	Err    string `json:"err"`
-	Status int    `json:"status"`
-}
+	"github.com/akakream/sailorsailor/p2p"
+)
 
 func (e apiError) Error() string {
 	return e.Err
 }
-
-type apiFunc func(http.ResponseWriter, *http.Request) error
 
 func makeHTTPHandler(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -29,27 +24,37 @@ func makeHTTPHandler(f apiFunc) http.HandlerFunc {
 	}
 }
 
-type Server struct {
-	port   string
-	quitch chan struct{}
-}
+func NewServer(port string, serverType string) *Server {
 
-func NewServer(port string) *Server {
+	// ctx := context.Background()
+
+	var servertype ServerType
+	var client p2p.P2PClient
+	if serverType == "libp2p" {
+		servertype = ServerTypeLibp2p
+		client = p2p.NewLibP2PClient()
+	} else {
+		servertype = ServerTypeIpfs
+		client = p2p.NewIpfsP2PClient(&p2p.Config{Port: "5001"})
+	}
+
 	return &Server{
-		port:   port,
-		quitch: make(chan struct{}),
+		port:       port,
+		Servertype: servertype,
+		client:     &client,
+		quitch:     make(chan struct{}),
 	}
 }
 
 func (s *Server) Start() {
 	// Publish a message to a topic
-	http.HandleFunc("/health", makeHTTPHandler(handleHealth))
+	http.HandleFunc("/health", makeHTTPHandler(s.handleHealth))
 	// Publish a message to a topic
-	http.HandleFunc("/pub", makeHTTPHandler(handlePublish))
+	http.HandleFunc("/pub", makeHTTPHandler(s.handlePublish))
 	// Subscribe to a topic
-	http.HandleFunc("/sub", makeHTTPHandler(handleSubscribe))
+	http.HandleFunc("/sub", makeHTTPHandler(s.handleSubscribe))
 	// Unsubscribe from a topic
-	http.HandleFunc("/unsub", makeHTTPHandler(handleUnsubscribe))
+	http.HandleFunc("/unsub", makeHTTPHandler(s.handleUnsubscribe))
 
 	http.ListenAndServe(":"+s.port, nil)
 
@@ -57,24 +62,20 @@ func (s *Server) Start() {
 	fmt.Println("Shutting down the server")
 }
 
-func handlePublish(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
+func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) error {
 
-func handleSubscribe(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
+	var servertype string
+	if s.Servertype == ServerTypeLibp2p {
+		servertype = "libp2p"
+	} else {
+		servertype = "ipfs"
+	}
 
-func handleUnsubscribe(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
-
-func handleHealth(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != http.MethodGet {
 		return apiError{Err: "invalid method", Status: http.StatusMethodNotAllowed}
 	}
 
-	return writeJSON(w, http.StatusOK, "OK")
+	return writeJSON(w, http.StatusOK, servertype+" - OK")
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) error {

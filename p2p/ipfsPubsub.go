@@ -1,29 +1,14 @@
-package ipfsPubsub
+package p2p
 
 import (
 	"fmt"
 	"log"
-	"sync"
 	"time"
 
 	shell "github.com/ipfs/go-ipfs-api"
 )
 
-type PubSubClient struct {
-	Shell            *shell.Shell
-	SubscribedTopics map[string]Topic
-	Channel          chan *shell.Message
-}
-
-type Config struct {
-	Port string
-}
-
-type Topic struct {
-	Subscription *shell.PubSubSubscription
-}
-
-func Listen(channel chan *shell.Message) {
+func (c *IpfsP2PClient) listen(channel chan *shell.Message) {
 	for {
 		select {
 		case msg := <-channel:
@@ -39,12 +24,10 @@ func Run() {
 	_ = sh
 
 	topicName := "babuska1"
-	pubsubClient := NewPubSubClient(&Config{Port: "5001"})
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go pubsubClient.Sub(topicName, wg)
+	pubsubClient := NewIpfsP2PClient(&Config{Port: "5001"})
+	go pubsubClient.Sub(topicName)
 	time.Sleep(5 * time.Second)
-	go Listen(pubsubClient.Channel)
+	go pubsubClient.listen(pubsubClient.Channel)
 	go pubsubClient.Pub(topicName, "lolwut1")
 	go pubsubClient.Pub(topicName, "lolwut2")
 	go pubsubClient.Pub(topicName, "lolwut3")
@@ -52,21 +35,20 @@ func Run() {
 	go pubsubClient.Pub(topicName, "lolwut5")
 	go pubsubClient.Pub(topicName, "lolwut6")
 
-	wg.Wait()
 	pubsubClient.Unsub(topicName)
 }
 
-func NewPubSubClient(config *Config) *PubSubClient {
+func NewIpfsP2PClient(config *Config) *IpfsP2PClient {
 	// ipfs daemon --enable-pubsub-experiment
 	sh := shell.NewShell("localhost:" + config.Port)
-	return &PubSubClient{
+	return &IpfsP2PClient{
 		Shell:            sh,
-		SubscribedTopics: make(map[string]Topic),
+		SubscribedTopics: make(map[string]IpfsP2PTopic),
 		Channel:          make(chan *shell.Message),
 	}
 }
 
-func (c *PubSubClient) Pub(topicName string, data string) {
+func (c *IpfsP2PClient) Pub(topicName string, data string) {
 	log.Println("Publishing...")
 	if err := c.Shell.PubSubPublish(topicName, data); err != nil {
 		log.Fatal(err)
@@ -74,12 +56,12 @@ func (c *PubSubClient) Pub(topicName string, data string) {
 	log.Println("Finished publishing.")
 }
 
-func (c *PubSubClient) Sub(topicName string, wg *sync.WaitGroup) {
+func (c *IpfsP2PClient) Sub(topicName string) {
 	subscription, err := c.Shell.PubSubSubscribe(topicName)
 	if err != nil {
 		log.Fatal(err)
 	}
-	c.SubscribedTopics[topicName] = Topic{Subscription: subscription}
+	c.SubscribedTopics[topicName] = IpfsP2PTopic{Subscription: subscription}
 
 	for {
 		msg, err := subscription.Next()
@@ -88,10 +70,9 @@ func (c *PubSubClient) Sub(topicName string, wg *sync.WaitGroup) {
 		}
 		c.Channel <- msg
 	}
-	wg.Done()
 }
 
-func (c *PubSubClient) Unsub(topicName string) {
+func (c *IpfsP2PClient) Unsub(topicName string) {
 
 	topic, topicExists := c.SubscribedTopics[topicName]
 

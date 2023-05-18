@@ -1,4 +1,4 @@
-package libp2pPubsub
+package p2p
 
 import (
 	"context"
@@ -11,22 +11,9 @@ import (
 
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p/core/host"
 )
 
-type PubSubClient struct {
-	Host             host.Host
-	Ps               *pubsub.PubSub
-	SubscribedTopics map[string]Topic
-	Channel          chan *pubsub.Message
-}
-
-type Topic struct {
-	Subscription *pubsub.Subscription
-	Topic        *pubsub.Topic
-}
-
-func Listen(channel chan *pubsub.Message) {
+func (c *LibP2PClient) listen(channel chan *pubsub.Message) {
 	for {
 		select {
 		case msg := <-channel:
@@ -37,27 +24,27 @@ func Listen(channel chan *pubsub.Message) {
 	}
 }
 
-func Run() {
-	ctx := context.Background()
+func run() {
 	topicName := "babuska1"
-	pubsubClient := NewPubSubClient(ctx)
+	pubsubClient := NewLibP2PClient()
 
-	go pubsubClient.Sub(topicName, ctx)
+	go pubsubClient.Sub(topicName)
 	time.Sleep(5 * time.Second)
-	go Listen(pubsubClient.Channel)
+	go pubsubClient.listen(pubsubClient.Channel)
 
-	go pubsubClient.Pub(ctx, topicName, "lolwut1")
-	go pubsubClient.Pub(ctx, topicName, "lolwut2")
-	go pubsubClient.Pub(ctx, topicName, "lolwut3")
-	go pubsubClient.Pub(ctx, topicName, "lolwut4")
-	go pubsubClient.Pub(ctx, topicName, "lolwut5")
-	go pubsubClient.Pub(ctx, topicName, "lolwut6")
+	go pubsubClient.Pub(topicName, "lolwut1")
+	go pubsubClient.Pub(topicName, "lolwut2")
+	go pubsubClient.Pub(topicName, "lolwut3")
+	go pubsubClient.Pub(topicName, "lolwut4")
+	go pubsubClient.Pub(topicName, "lolwut5")
+	go pubsubClient.Pub(topicName, "lolwut6")
 
 	listenShutdown(pubsubClient)
 }
 
-func NewPubSubClient(ctx context.Context) *PubSubClient {
+func NewLibP2PClient() *LibP2PClient {
 
+	ctx := context.Background()
 	host, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
 	if err != nil {
 		panic(err)
@@ -70,15 +57,16 @@ func NewPubSubClient(ctx context.Context) *PubSubClient {
 		panic(err)
 	}
 
-	return &PubSubClient{
+	return &LibP2PClient{
 		Host:             host,
 		Ps:               ps,
-		SubscribedTopics: make(map[string]Topic),
+		SubscribedTopics: make(map[string]LibP2PTopic),
 		Channel:          make(chan *pubsub.Message),
 	}
 }
 
-func (c *PubSubClient) Pub(ctx context.Context, topicName string, data string) {
+func (c *LibP2PClient) Pub(topicName string, data string) {
+	ctx := context.Background()
 	log.Println("Publishing...")
 	topic, topicExists := c.SubscribedTopics[topicName]
 
@@ -90,7 +78,8 @@ func (c *PubSubClient) Pub(ctx context.Context, topicName string, data string) {
 	}
 }
 
-func (c *PubSubClient) Sub(topicName string, ctx context.Context) {
+func (c *LibP2PClient) Sub(topicName string) {
+	ctx := context.Background()
 	topic, err := c.Ps.Join(topicName)
 	if err != nil {
 		log.Fatal(err)
@@ -101,7 +90,7 @@ func (c *PubSubClient) Sub(topicName string, ctx context.Context) {
 		log.Fatal(err)
 	}
 
-	c.SubscribedTopics[topicName] = Topic{Subscription: subscription, Topic: topic}
+	c.SubscribedTopics[topicName] = LibP2PTopic{Subscription: subscription, Topic: topic}
 
 	for {
 		msg, err := subscription.Next(ctx)
@@ -112,7 +101,7 @@ func (c *PubSubClient) Sub(topicName string, ctx context.Context) {
 	}
 }
 
-func (c *PubSubClient) Unsub(topicName string) {
+func (c *LibP2PClient) Unsub(topicName string) {
 
 	topic, topicExists := c.SubscribedTopics[topicName]
 
@@ -124,13 +113,13 @@ func (c *PubSubClient) Unsub(topicName string) {
 	}
 }
 
-func (c *PubSubClient) shutdown() {
+func (c *LibP2PClient) shutdown() {
 	for _, topic := range c.SubscribedTopics {
 		c.Unsub(topic.Topic.String())
 	}
 }
 
-func listenShutdown(c *PubSubClient) {
+func listenShutdown(c *LibP2PClient) {
 	quitChannel := make(chan os.Signal, 1)
 	signal.Notify(quitChannel, syscall.SIGINT, syscall.SIGTERM)
 	<-quitChannel

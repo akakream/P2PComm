@@ -11,9 +11,9 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "pubsub",
-	Short: "pubsub contains two different implementation of the same pubsub logic using libp2p and ipfs.",
-	Long:  `pubsub contains two different implementation of the same pubsub logic using libp2p and ipfs.`,
+	Use:   "p2ppubsub",
+	Short: "p2ppubsub contains two different implementation of the same pubsub logic using libp2p and ipfs.",
+	Long:  `p2ppubsub contains two different implementation of the same pubsub logic using libp2p and ipfs.`,
 }
 
 func Execute() {
