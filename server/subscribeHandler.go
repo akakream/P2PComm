@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"sync"
 )
 
 func (s *Server) handleSubscribe(w http.ResponseWriter, r *http.Request) error {
@@ -28,10 +27,9 @@ func (s *Server) handleSubscribe(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Logic
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go s.Client.Sub(topicName, wg)
-	wg.Wait()
+	if err := s.Client.Sub(topicName); err != nil {
+		return apiError{Err: err.Error(), Status: http.StatusInternalServerError}
+	}
 
 	return writeJSON(w, http.StatusOK, "Subscribed to the topic "+bodyJson.Topic)
 }

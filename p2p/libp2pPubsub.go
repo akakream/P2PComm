@@ -61,29 +61,40 @@ func (c *LibP2PClient) Pub(topicName string, data string) {
 	}
 }
 
-func (c *LibP2PClient) Sub(topicName string, wg *sync.WaitGroup) {
-	ctx := context.Background()
-	topic, err := c.Ps.Join(topicName)
-	if err != nil {
-		log.Fatal(err)
+func (c *LibP2PClient) Sub(topicName string) error {
+	_, topicExists := c.SubscribedTopics[topicName]
+	if topicExists {
+		return ErrAlreadySubscribed
 	}
 
-	subscription, err := topic.Subscribe()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	c.SubscribedTopics[topicName] = LibP2PTopic{Subscription: subscription, Topic: topic}
-
-	wg.Done()
-
-	for {
-		msg, err := subscription.Next(ctx)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		ctx := context.Background()
+		topic, err := c.Ps.Join(topicName)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("join error: %v", err)
 		}
-		c.Channel <- msg
-	}
+
+		subscription, err := topic.Subscribe()
+		if err != nil {
+			log.Fatalf("subscription error: %v", err)
+		}
+
+		c.SubscribedTopics[topicName] = LibP2PTopic{Subscription: subscription, Topic: topic}
+
+		wg.Done()
+
+		for {
+			msg, err := subscription.Next(ctx)
+			if err != nil {
+				log.Fatalf("fetching subscription message error: %v", err)
+			}
+			c.Channel <- msg
+		}
+	}()
+	wg.Wait()
+	return nil
 }
 
 func (c *LibP2PClient) Unsub(topicName string) {

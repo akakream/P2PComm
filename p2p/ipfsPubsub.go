@@ -41,22 +41,33 @@ func (c *IpfsP2PClient) Pub(topicName string, data string) {
 	log.Println("Finished publishing.")
 }
 
-func (c *IpfsP2PClient) Sub(topicName string, wg *sync.WaitGroup) {
-	subscription, err := c.Shell.PubSubSubscribe(topicName)
-	if err != nil {
-		log.Fatal(err)
+func (c *IpfsP2PClient) Sub(topicName string) error {
+	_, topicExists := c.SubscribedTopics[topicName]
+	if topicExists {
+		return ErrAlreadySubscribed
 	}
-	c.SubscribedTopics[topicName] = IpfsP2PTopic{Subscription: subscription, TopicName: topicName}
 
-	wg.Done()
-
-	for {
-		msg, err := subscription.Next()
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		subscription, err := c.Shell.PubSubSubscribe(topicName)
 		if err != nil {
 			log.Fatal(err)
 		}
-		c.Channel <- msg
-	}
+		c.SubscribedTopics[topicName] = IpfsP2PTopic{Subscription: subscription, TopicName: topicName}
+
+		wg.Done()
+
+		for {
+			msg, err := subscription.Next()
+			if err != nil {
+				log.Fatal(err)
+			}
+			c.Channel <- msg
+		}
+	}()
+	wg.Wait()
+	return nil
 }
 
 func (c *IpfsP2PClient) Unsub(topicName string) {
