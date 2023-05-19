@@ -1,15 +1,20 @@
 package p2p
 
 import (
+	"sync"
+
 	shell "github.com/ipfs/go-ipfs-api"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 )
 
 type P2PClient interface {
+	Start()
 	Pub(topicName string, data string)
-	Sub(topicName string)
+	Sub(topicName string, wg *sync.WaitGroup)
 	Unsub(topicName string)
+	Shutdown()
+	ListSubscribedTopics() []string
 }
 
 type LibP2PClient struct {
@@ -32,6 +37,7 @@ type IpfsP2PClient struct {
 
 type IpfsP2PTopic struct {
 	Subscription *shell.PubSubSubscription
+	TopicName    string
 }
 
 type Config struct {

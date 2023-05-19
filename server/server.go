@@ -3,7 +3,10 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
 
 	"github.com/akakream/sailorsailor/p2p"
 )
@@ -55,11 +58,19 @@ func (s *Server) Start() {
 	http.HandleFunc("/sub", makeHTTPHandler(s.handleSubscribe))
 	// Unsubscribe from a topic
 	http.HandleFunc("/unsub", makeHTTPHandler(s.handleUnsubscribe))
+	// Return all susbcribed topics
+	http.HandleFunc("/topics", makeHTTPHandler(s.handleListSubscribedTopics))
 
-	http.ListenAndServe(":"+s.port, nil)
+	go s.Client.Start()
+	go s.listenShutdown()
+
+	go func() {
+		if err := http.ListenAndServe(":"+s.port, nil); err != http.ErrServerClosed {
+			log.Fatalf("HTTP server ListenAndServe Error: %v", err)
+		}
+	}()
 
 	<-s.quitch
-	fmt.Println("Shutting down the server")
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) error {
@@ -76,6 +87,21 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	return writeJSON(w, http.StatusOK, servertype+" - OK")
+}
+
+func (s *Server) gracefullyQuitServer() {
+	fmt.Println("Shutting down the server")
+
+	// Unsub from all topics
+	s.Client.Shutdown()
+}
+
+func (s *Server) listenShutdown() {
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, os.Interrupt)
+	<-sigint
+	s.gracefullyQuitServer()
+	close(s.quitch)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) error {

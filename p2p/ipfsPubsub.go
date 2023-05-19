@@ -3,7 +3,7 @@ package p2p
 import (
 	"fmt"
 	"log"
-	"time"
+	"sync"
 
 	shell "github.com/ipfs/go-ipfs-api"
 )
@@ -19,25 +19,6 @@ func (c *IpfsP2PClient) listen(channel chan *shell.Message) {
 	}
 }
 
-func Run() {
-	sh := shell.NewShell("localhost:" + "5001")
-	_ = sh
-
-	topicName := "babuska1"
-	pubsubClient := NewIpfsP2PClient(&Config{Port: "5001"})
-	go pubsubClient.Sub(topicName)
-	time.Sleep(5 * time.Second)
-	go pubsubClient.listen(pubsubClient.Channel)
-	go pubsubClient.Pub(topicName, "lolwut1")
-	go pubsubClient.Pub(topicName, "lolwut2")
-	go pubsubClient.Pub(topicName, "lolwut3")
-	go pubsubClient.Pub(topicName, "lolwut4")
-	go pubsubClient.Pub(topicName, "lolwut5")
-	go pubsubClient.Pub(topicName, "lolwut6")
-
-	pubsubClient.Unsub(topicName)
-}
-
 func NewIpfsP2PClient(config *Config) *IpfsP2PClient {
 	// ipfs daemon --enable-pubsub-experiment
 	sh := shell.NewShell("localhost:" + config.Port)
@@ -48,6 +29,10 @@ func NewIpfsP2PClient(config *Config) *IpfsP2PClient {
 	}
 }
 
+func (c *IpfsP2PClient) Start() {
+	c.listen(c.Channel)
+}
+
 func (c *IpfsP2PClient) Pub(topicName string, data string) {
 	log.Println("Publishing...")
 	if err := c.Shell.PubSubPublish(topicName, data); err != nil {
@@ -56,12 +41,14 @@ func (c *IpfsP2PClient) Pub(topicName string, data string) {
 	log.Println("Finished publishing.")
 }
 
-func (c *IpfsP2PClient) Sub(topicName string) {
+func (c *IpfsP2PClient) Sub(topicName string, wg *sync.WaitGroup) {
 	subscription, err := c.Shell.PubSubSubscribe(topicName)
 	if err != nil {
 		log.Fatal(err)
 	}
-	c.SubscribedTopics[topicName] = IpfsP2PTopic{Subscription: subscription}
+	c.SubscribedTopics[topicName] = IpfsP2PTopic{Subscription: subscription, TopicName: topicName}
+
+	wg.Done()
 
 	for {
 		msg, err := subscription.Next()
@@ -84,4 +71,18 @@ func (c *IpfsP2PClient) Unsub(topicName string) {
 	} else {
 		log.Printf("There is no subscription for the topic: %s", topicName)
 	}
+}
+
+func (c *IpfsP2PClient) Shutdown() {
+	for _, topic := range c.SubscribedTopics {
+		c.Unsub(topic.TopicName)
+	}
+}
+
+func (c *IpfsP2PClient) ListSubscribedTopics() []string {
+	var subscribedTopics []string
+	for _, topic := range c.SubscribedTopics {
+		subscribedTopics = append(subscribedTopics, topic.TopicName)
+	}
+	return subscribedTopics
 }

@@ -32,7 +32,7 @@ func (s *Server) handlePublish(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Logic
-	s.Client.Pub(topicName, string(message))
+	go s.Client.Pub(topicName, string(message))
 
 	return writeJSON(w, http.StatusOK, "Published message "+string(message)+" to the topic "+bodyJson.Topic)
 }

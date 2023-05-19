@@ -4,10 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
+	"sync"
 
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -22,24 +19,6 @@ func (c *LibP2PClient) listen(channel chan *pubsub.Message) {
 		default:
 		}
 	}
-}
-
-func run() {
-	topicName := "babuska1"
-	pubsubClient := NewLibP2PClient()
-
-	go pubsubClient.Sub(topicName)
-	time.Sleep(5 * time.Second)
-	go pubsubClient.listen(pubsubClient.Channel)
-
-	go pubsubClient.Pub(topicName, "lolwut1")
-	go pubsubClient.Pub(topicName, "lolwut2")
-	go pubsubClient.Pub(topicName, "lolwut3")
-	go pubsubClient.Pub(topicName, "lolwut4")
-	go pubsubClient.Pub(topicName, "lolwut5")
-	go pubsubClient.Pub(topicName, "lolwut6")
-
-	listenShutdown(pubsubClient)
 }
 
 func NewLibP2PClient() *LibP2PClient {
@@ -65,6 +44,10 @@ func NewLibP2PClient() *LibP2PClient {
 	}
 }
 
+func (c *LibP2PClient) Start() {
+	c.listen(c.Channel)
+}
+
 func (c *LibP2PClient) Pub(topicName string, data string) {
 	ctx := context.Background()
 	log.Println("Publishing...")
@@ -78,7 +61,7 @@ func (c *LibP2PClient) Pub(topicName string, data string) {
 	}
 }
 
-func (c *LibP2PClient) Sub(topicName string) {
+func (c *LibP2PClient) Sub(topicName string, wg *sync.WaitGroup) {
 	ctx := context.Background()
 	topic, err := c.Ps.Join(topicName)
 	if err != nil {
@@ -91,6 +74,8 @@ func (c *LibP2PClient) Sub(topicName string) {
 	}
 
 	c.SubscribedTopics[topicName] = LibP2PTopic{Subscription: subscription, Topic: topic}
+
+	wg.Done()
 
 	for {
 		msg, err := subscription.Next(ctx)
@@ -113,16 +98,16 @@ func (c *LibP2PClient) Unsub(topicName string) {
 	}
 }
 
-func (c *LibP2PClient) shutdown() {
+func (c *LibP2PClient) Shutdown() {
 	for _, topic := range c.SubscribedTopics {
 		c.Unsub(topic.Topic.String())
 	}
 }
 
-func listenShutdown(c *LibP2PClient) {
-	quitChannel := make(chan os.Signal, 1)
-	signal.Notify(quitChannel, syscall.SIGINT, syscall.SIGTERM)
-	<-quitChannel
-
-	c.shutdown()
+func (c *LibP2PClient) ListSubscribedTopics() []string {
+	var subscribedTopics []string
+	for _, topic := range c.SubscribedTopics {
+		subscribedTopics = append(subscribedTopics, topic.Topic.String())
+	}
+	return subscribedTopics
 }
