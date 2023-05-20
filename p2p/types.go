@@ -8,7 +8,7 @@ import (
 
 type P2PClient interface {
 	Start()
-	Pub(topicName string, data string)
+	Pub(topicName string, data string) error
 	Sub(topicName string) error
 	Unsub(topicName string)
 	Shutdown()

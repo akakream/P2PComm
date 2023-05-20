@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -90,7 +89,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (s *Server) gracefullyQuitServer() {
-	fmt.Println("Shutting down the server")
+	log.Println("Shutting down the server")
 
 	// Unsub from all topics
 	s.Client.Shutdown()

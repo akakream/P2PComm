@@ -1,9 +1,9 @@
 package p2p
 
 import (
-	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	shell "github.com/ipfs/go-ipfs-api"
 )
@@ -12,8 +12,8 @@ func (c *IpfsP2PClient) listen(channel chan *shell.Message) {
 	for {
 		select {
 		case msg := <-channel:
-			fmt.Println(string(msg.Data))
-			fmt.Println(msg.TopicIDs)
+			log.Println(string(msg.Data))
+			log.Println(msg.TopicIDs)
 		default:
 		}
 	}
@@ -33,12 +33,19 @@ func (c *IpfsP2PClient) Start() {
 	c.listen(c.Channel)
 }
 
-func (c *IpfsP2PClient) Pub(topicName string, data string) {
+func (c *IpfsP2PClient) Pub(topicName string, data string) error {
+	_, topicExists := c.SubscribedTopics[topicName]
+	if !topicExists {
+		return ErrSubscriptionDoesNotExist
+	}
+
 	log.Println("Publishing...")
 	if err := c.Shell.PubSubPublish(topicName, data); err != nil {
-		log.Fatal(err)
+		log.Printf("Publish failed: %v.\n", err)
+		return ErrPublishFailed
 	}
 	log.Println("Finished publishing.")
+	return nil
 }
 
 func (c *IpfsP2PClient) Sub(topicName string) error {
@@ -61,7 +68,8 @@ func (c *IpfsP2PClient) Sub(topicName string) error {
 		for {
 			msg, err := subscription.Next()
 			if err != nil {
-				log.Fatal(err)
+				log.Printf("fetching subscription message error: %v.\n", err)
+				break
 			}
 			c.Channel <- msg
 		}
@@ -78,6 +86,7 @@ func (c *IpfsP2PClient) Unsub(topicName string) {
 		if err := topic.Subscription.Cancel(); err != nil {
 			log.Fatal(err)
 		}
+		delete(c.SubscribedTopics, topicName)
 		log.Printf("Unsubscribed from the topic: %s", topicName)
 	} else {
 		log.Printf("There is no subscription for the topic: %s", topicName)
@@ -88,6 +97,9 @@ func (c *IpfsP2PClient) Shutdown() {
 	for _, topic := range c.SubscribedTopics {
 		c.Unsub(topic.TopicName)
 	}
+	// close(c.Channel)
+	// log.Println("Closing channel.")
+	time.Sleep(2 * time.Second)
 }
 
 func (c *IpfsP2PClient) ListSubscribedTopics() []string {

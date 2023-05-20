@@ -15,8 +15,8 @@ func (c *LibP2PClient) listen(channel chan *pubsub.Message) {
 	for {
 		select {
 		case msg := <-channel:
-			fmt.Println(string(msg.Data))
-			fmt.Println(msg.Topic)
+			log.Println(string(msg.Data))
+			log.Println(msg.Topic)
 		default:
 		}
 	}
@@ -29,8 +29,8 @@ func NewLibP2PClient() *LibP2PClient {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(host.ID())
-	fmt.Println(host.Addrs())
+	log.Println(host.ID())
+	log.Println(host.Addrs())
 
 	ps, err := pubsub.NewGossipSub(ctx, host)
 	if err != nil {
@@ -49,17 +49,20 @@ func (c *LibP2PClient) Start() {
 	c.listen(c.Channel)
 }
 
-func (c *LibP2PClient) Pub(topicName string, data string) {
-	ctx := context.Background()
-	log.Println("Publishing...")
+func (c *LibP2PClient) Pub(topicName string, data string) error {
 	topic, topicExists := c.SubscribedTopics[topicName]
-
-	if topicExists {
-		if err := topic.Topic.Publish(ctx, []byte(data)); err != nil {
-			log.Fatal(err)
-		}
-		log.Println("Finished publishing.")
+	if !topicExists {
+		return ErrSubscriptionDoesNotExist
 	}
+
+	log.Println("Publishing...")
+	ctx := context.Background()
+	if err := topic.Topic.Publish(ctx, []byte(data)); err != nil {
+		log.Printf("Publish failed: %v.\n", err)
+		return ErrPublishFailed
+	}
+	log.Println("Finished publishing.")
+	return nil
 }
 
 func (c *LibP2PClient) Sub(topicName string) error {
@@ -117,9 +120,9 @@ func (c *LibP2PClient) Shutdown() {
 		c.Unsub(topic.Topic.String())
 	}
 	// close(c.Channel)
-	// fmt.Println("Closing channel.")
+	// log.Println("Closing channel.")
 	c.Host.Close()
-	fmt.Println("Closing host.")
+	log.Println("Closing host.")
 	time.Sleep(2 * time.Second)
 }
 

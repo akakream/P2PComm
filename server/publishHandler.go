@@ -2,8 +2,8 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -19,7 +19,7 @@ func (s *Server) handlePublish(w http.ResponseWriter, r *http.Request) error {
 
 	var bodyJson PubRequestBody
 	if err := json.Unmarshal(body, &bodyJson); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return apiError{Err: "body must be json", Status: http.StatusBadRequest}
 	}
 
@@ -34,7 +34,9 @@ func (s *Server) handlePublish(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Logic
-	go s.Client.Pub(topicName, message)
+	if err := s.Client.Pub(topicName, message); err != nil {
+		return apiError{Err: err.Error(), Status: http.StatusInternalServerError}
+	}
 
 	return writeJSON(w, http.StatusOK, "Published message "+string(message)+" to the topic "+bodyJson.Topic)
 }
