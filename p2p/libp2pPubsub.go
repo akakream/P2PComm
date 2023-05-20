@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -40,7 +41,7 @@ func NewLibP2PClient() *LibP2PClient {
 		Host:             host,
 		Ps:               ps,
 		SubscribedTopics: make(map[string]LibP2PTopic),
-		Channel:          make(chan *pubsub.Message),
+		Channel:          make(chan *pubsub.Message, 20),
 	}
 }
 
@@ -88,7 +89,8 @@ func (c *LibP2PClient) Sub(topicName string) error {
 		for {
 			msg, err := subscription.Next(ctx)
 			if err != nil {
-				log.Fatalf("fetching subscription message error: %v", err)
+				fmt.Printf("fetching subscription message error: %v.\n", err)
+				break
 			}
 			c.Channel <- msg
 		}
@@ -113,6 +115,11 @@ func (c *LibP2PClient) Shutdown() {
 	for _, topic := range c.SubscribedTopics {
 		c.Unsub(topic.Topic.String())
 	}
+	// close(c.Channel)
+	// fmt.Println("Closing channel.")
+	c.Host.Close()
+	fmt.Println("Closing host.")
+	time.Sleep(2 * time.Second)
 }
 
 func (c *LibP2PClient) ListSubscribedTopics() []string {

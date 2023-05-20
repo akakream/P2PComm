@@ -25,7 +25,7 @@ func NewIpfsP2PClient(config *Config) *IpfsP2PClient {
 	return &IpfsP2PClient{
 		Shell:            sh,
 		SubscribedTopics: make(map[string]IpfsP2PTopic),
-		Channel:          make(chan *shell.Message),
+		Channel:          make(chan *shell.Message, 20),
 	}
 }
 

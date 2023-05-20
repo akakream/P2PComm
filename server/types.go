@@ -29,7 +29,7 @@ type Server struct {
 
 type PubRequestBody struct {
 	Topic   string `json:"topic"`
-	Message []byte `json:"message"`
+	Message string `json:"message"`
 }
 
 type SubRequestBody struct {
