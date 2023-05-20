@@ -105,6 +105,7 @@ func (c *LibP2PClient) Unsub(topicName string) {
 
 	if topicExists {
 		topic.Subscription.Cancel()
+		delete(c.SubscribedTopics, topicName)
 		log.Printf("Unsubscribed from the topic: %s", topicName)
 	} else {
 		log.Printf("There is no subscription for the topic: %s", topicName)
