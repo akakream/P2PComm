@@ -27,7 +27,14 @@ func (s *Server) handleUnsubscribe(w http.ResponseWriter, r *http.Request) error
 	}
 
 	// Logic
-	s.Client.Unsub(topicName)
+	messageHistory, err := s.Client.Unsub(topicName)
+	if err != nil {
+		return apiError{Err: err.Error(), Status: http.StatusInternalServerError}
+	}
+	resp := UnsubResponseBody{
+		Topic:    topicName,
+		Messages: messageHistory,
+	}
 
-	return writeJSON(w, http.StatusOK, "Unsubscribed from the topic "+bodyJson.Topic)
+	return writeJSON(w, http.StatusOK, resp)
 }

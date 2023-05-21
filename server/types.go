@@ -35,3 +35,12 @@ type PubRequestBody struct {
 type SubRequestBody struct {
 	Topic string `json:"topic"`
 }
+
+type UnsubResponseBody struct {
+	Topic    string   `json:"topic"`
+	Messages []string `json:"messages"`
+}
+
+type ListTopicsRequestBody struct {
+	Topics []string `json:"topics"`
+}

@@ -40,7 +40,7 @@ func NewLibP2PClient() *LibP2PClient {
 	return &LibP2PClient{
 		Host:             host,
 		Ps:               ps,
-		SubscribedTopics: make(map[string]LibP2PTopic),
+		SubscribedTopics: make(map[string]*LibP2PTopic),
 		Channel:          make(chan *pubsub.Message, 20),
 	}
 }
@@ -49,20 +49,21 @@ func (c *LibP2PClient) Start() {
 	c.listen(c.Channel)
 }
 
-func (c *LibP2PClient) Pub(topicName string, data string) error {
+func (c *LibP2PClient) Pub(topicName string, data string) ([]string, error) {
 	topic, topicExists := c.SubscribedTopics[topicName]
 	if !topicExists {
-		return ErrSubscriptionDoesNotExist
+		return nil, ErrSubscriptionDoesNotExist
 	}
 
 	log.Println("Publishing...")
 	ctx := context.Background()
 	if err := topic.Topic.Publish(ctx, []byte(data)); err != nil {
 		log.Printf("Publish failed: %v.\n", err)
-		return ErrPublishFailed
+		return nil, ErrPublishFailed
 	}
+	topic.PubHistory = append(topic.PubHistory, data)
 	log.Println("Finished publishing.")
-	return nil
+	return topic.PubHistory, nil
 }
 
 func (c *LibP2PClient) Sub(topicName string) error {
@@ -85,7 +86,7 @@ func (c *LibP2PClient) Sub(topicName string) error {
 			log.Fatalf("subscription error: %v", err)
 		}
 
-		c.SubscribedTopics[topicName] = LibP2PTopic{Subscription: subscription, Topic: topic}
+		c.SubscribedTopics[topicName] = &LibP2PTopic{Subscription: subscription, Topic: topic, PubHistory: make([]string, 0)}
 
 		wg.Done()
 
@@ -102,17 +103,20 @@ func (c *LibP2PClient) Sub(topicName string) error {
 	return nil
 }
 
-func (c *LibP2PClient) Unsub(topicName string) {
-
+func (c *LibP2PClient) Unsub(topicName string) ([]string, error) {
 	topic, topicExists := c.SubscribedTopics[topicName]
 
 	if topicExists {
 		topic.Subscription.Cancel()
+		topic.Topic.Close()
 		delete(c.SubscribedTopics, topicName)
 		log.Printf("Unsubscribed from the topic: %s", topicName)
 	} else {
 		log.Printf("There is no subscription for the topic: %s", topicName)
+		return nil, ErrSubscriptionDoesNotExist
 	}
+
+	return topic.PubHistory, nil
 }
 
 func (c *LibP2PClient) Shutdown() {
@@ -127,7 +131,7 @@ func (c *LibP2PClient) Shutdown() {
 }
 
 func (c *LibP2PClient) ListSubscribedTopics() []string {
-	var subscribedTopics []string
+	subscribedTopics := make([]string, 0)
 	for _, topic := range c.SubscribedTopics {
 		subscribedTopics = append(subscribedTopics, topic.Topic.String())
 	}

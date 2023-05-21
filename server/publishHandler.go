@@ -34,9 +34,14 @@ func (s *Server) handlePublish(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Logic
-	if err := s.Client.Pub(topicName, message); err != nil {
+	messageHistory, err := s.Client.Pub(topicName, message)
+	if err != nil {
 		return apiError{Err: err.Error(), Status: http.StatusInternalServerError}
 	}
+	resp := UnsubResponseBody{
+		Topic:    topicName,
+		Messages: messageHistory,
+	}
 
-	return writeJSON(w, http.StatusOK, "Published message "+string(message)+" to the topic "+bodyJson.Topic)
+	return writeJSON(w, http.StatusOK, resp)
 }

@@ -24,7 +24,7 @@ func NewIpfsP2PClient(config *Config) *IpfsP2PClient {
 	sh := shell.NewShell("localhost:" + config.Port)
 	return &IpfsP2PClient{
 		Shell:            sh,
-		SubscribedTopics: make(map[string]IpfsP2PTopic),
+		SubscribedTopics: make(map[string]*IpfsP2PTopic),
 		Channel:          make(chan *shell.Message, 20),
 	}
 }
@@ -33,19 +33,20 @@ func (c *IpfsP2PClient) Start() {
 	c.listen(c.Channel)
 }
 
-func (c *IpfsP2PClient) Pub(topicName string, data string) error {
-	_, topicExists := c.SubscribedTopics[topicName]
+func (c *IpfsP2PClient) Pub(topicName string, data string) ([]string, error) {
+	topic, topicExists := c.SubscribedTopics[topicName]
 	if !topicExists {
-		return ErrSubscriptionDoesNotExist
+		return nil, ErrSubscriptionDoesNotExist
 	}
 
 	log.Println("Publishing...")
 	if err := c.Shell.PubSubPublish(topicName, data); err != nil {
 		log.Printf("Publish failed: %v.\n", err)
-		return ErrPublishFailed
+		return nil, ErrPublishFailed
 	}
+	topic.PubHistory = append(topic.PubHistory, data)
 	log.Println("Finished publishing.")
-	return nil
+	return topic.PubHistory, nil
 }
 
 func (c *IpfsP2PClient) Sub(topicName string) error {
@@ -61,7 +62,7 @@ func (c *IpfsP2PClient) Sub(topicName string) error {
 		if err != nil {
 			log.Fatal(err)
 		}
-		c.SubscribedTopics[topicName] = IpfsP2PTopic{Subscription: subscription, TopicName: topicName}
+		c.SubscribedTopics[topicName] = &IpfsP2PTopic{Subscription: subscription, TopicName: topicName, PubHistory: make([]string, 0)}
 
 		wg.Done()
 
@@ -78,7 +79,7 @@ func (c *IpfsP2PClient) Sub(topicName string) error {
 	return nil
 }
 
-func (c *IpfsP2PClient) Unsub(topicName string) {
+func (c *IpfsP2PClient) Unsub(topicName string) ([]string, error) {
 
 	topic, topicExists := c.SubscribedTopics[topicName]
 
@@ -90,7 +91,9 @@ func (c *IpfsP2PClient) Unsub(topicName string) {
 		log.Printf("Unsubscribed from the topic: %s", topicName)
 	} else {
 		log.Printf("There is no subscription for the topic: %s", topicName)
+		return nil, ErrSubscriptionDoesNotExist
 	}
+	return topic.PubHistory, nil
 }
 
 func (c *IpfsP2PClient) Shutdown() {
@@ -103,7 +106,7 @@ func (c *IpfsP2PClient) Shutdown() {
 }
 
 func (c *IpfsP2PClient) ListSubscribedTopics() []string {
-	var subscribedTopics []string
+	subscribedTopics := make([]string, 0)
 	for _, topic := range c.SubscribedTopics {
 		subscribedTopics = append(subscribedTopics, topic.TopicName)
 	}
