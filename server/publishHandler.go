@@ -38,7 +38,7 @@ func (s *Server) handlePublish(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return apiError{Err: err.Error(), Status: http.StatusInternalServerError}
 	}
-	resp := UnsubResponseBody{
+	resp := PubResponseBody{
 		Topic:    topicName,
 		Messages: messageHistory,
 	}

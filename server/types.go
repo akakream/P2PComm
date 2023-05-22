@@ -32,6 +32,11 @@ type PubRequestBody struct {
 	Message string `json:"message"`
 }
 
+type PubResponseBody struct {
+	Topic    string   `json:"topic"`
+	Messages []string `json:"message"`
+}
+
 type SubRequestBody struct {
 	Topic string `json:"topic"`
 }

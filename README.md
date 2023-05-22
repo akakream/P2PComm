@@ -19,3 +19,9 @@ Start ipfs daemon with pubsub enabled in another terminal to run the ipfs pubsub
 ```
 ipfs daemon --enable-pubsub-experiment
 ```
+
+## Test
+
+```
+make test
+```
