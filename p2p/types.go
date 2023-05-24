@@ -34,6 +34,7 @@ type LibP2PTopic struct {
 
 type IpfsP2PClient struct {
 	Shell            *shell.Shell
+	mu               sync.RWMutex
 	SubscribedTopics map[string]*IpfsP2PTopic
 	Channel          chan *shell.Message
 }
@@ -41,6 +42,7 @@ type IpfsP2PClient struct {
 type IpfsP2PTopic struct {
 	Subscription *shell.PubSubSubscription
 	TopicName    string
+	mu           sync.RWMutex
 	PubHistory   []string
 }
 
