@@ -1,6 +1,8 @@
 package p2p
 
 import (
+	"sync"
+
 	shell "github.com/ipfs/go-ipfs-api"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -18,6 +20,7 @@ type P2PClient interface {
 type LibP2PClient struct {
 	Host             host.Host
 	Ps               *pubsub.PubSub
+	mu               sync.RWMutex
 	SubscribedTopics map[string]*LibP2PTopic
 	Channel          chan *pubsub.Message
 }
@@ -25,6 +28,7 @@ type LibP2PClient struct {
 type LibP2PTopic struct {
 	Subscription *pubsub.Subscription
 	Topic        *pubsub.Topic
+	mu           sync.RWMutex
 	PubHistory   []string
 }
 

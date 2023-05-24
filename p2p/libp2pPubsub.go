@@ -50,7 +50,9 @@ func (c *LibP2PClient) Start() {
 }
 
 func (c *LibP2PClient) Pub(topicName string, data string) ([]string, error) {
+	c.mu.RLock()
 	topic, topicExists := c.SubscribedTopics[topicName]
+	c.mu.RUnlock()
 	if !topicExists {
 		return nil, ErrSubscriptionDoesNotExist
 	}
@@ -61,13 +63,17 @@ func (c *LibP2PClient) Pub(topicName string, data string) ([]string, error) {
 		log.Printf("Publish failed: %v.\n", err)
 		return nil, ErrPublishFailed
 	}
+	topic.mu.Lock()
 	topic.PubHistory = append(topic.PubHistory, data)
+	topic.mu.Unlock()
 	log.Println("Finished publishing.")
 	return topic.PubHistory, nil
 }
 
 func (c *LibP2PClient) Sub(topicName string) error {
+	c.mu.RLock()
 	_, topicExists := c.SubscribedTopics[topicName]
+	c.mu.RUnlock()
 	if topicExists {
 		return ErrAlreadySubscribed
 	}
@@ -86,7 +92,9 @@ func (c *LibP2PClient) Sub(topicName string) error {
 			log.Fatalf("subscription error: %v", err)
 		}
 
+		c.mu.Lock()
 		c.SubscribedTopics[topicName] = &LibP2PTopic{Subscription: subscription, Topic: topic, PubHistory: make([]string, 0)}
+		c.mu.Unlock()
 
 		wg.Done()
 
@@ -104,12 +112,16 @@ func (c *LibP2PClient) Sub(topicName string) error {
 }
 
 func (c *LibP2PClient) Unsub(topicName string) ([]string, error) {
+	c.mu.RLock()
 	topic, topicExists := c.SubscribedTopics[topicName]
+	c.mu.RUnlock()
 
 	if topicExists {
 		topic.Subscription.Cancel()
 		topic.Topic.Close()
+		c.mu.Lock()
 		delete(c.SubscribedTopics, topicName)
+		c.mu.Unlock()
 		log.Printf("Unsubscribed from the topic: %s", topicName)
 	} else {
 		log.Printf("There is no subscription for the topic: %s", topicName)
@@ -120,9 +132,11 @@ func (c *LibP2PClient) Unsub(topicName string) ([]string, error) {
 }
 
 func (c *LibP2PClient) Shutdown() {
+	c.mu.RLock()
 	for _, topic := range c.SubscribedTopics {
 		c.Unsub(topic.Topic.String())
 	}
+	c.mu.RUnlock()
 	// close(c.Channel)
 	// log.Println("Closing channel.")
 	c.Host.Close()
@@ -132,8 +146,10 @@ func (c *LibP2PClient) Shutdown() {
 
 func (c *LibP2PClient) ListSubscribedTopics() []string {
 	subscribedTopics := make([]string, 0)
+	c.mu.RLock()
 	for _, topic := range c.SubscribedTopics {
 		subscribedTopics = append(subscribedTopics, topic.Topic.String())
 	}
+	c.mu.RUnlock()
 	return subscribedTopics
 }
