@@ -2,7 +2,6 @@ package identity
 
 import (
 	"crypto/rand"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -30,14 +29,14 @@ func NewIdentity(datapath string) (*Identity, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = ioutil.WriteFile(privateKeyPath, privKeyBytes, 0400)
+		err = os.WriteFile(privateKeyPath, privKeyBytes, 0400)
 		if err != nil {
 			return nil, err
 		}
 	} else if err != nil {
 		return nil, err
 	} else {
-		key, err := ioutil.ReadFile(privateKeyPath)
+		key, err := os.ReadFile(privateKeyPath)
 		if err != nil {
 			return nil, err
 		}
