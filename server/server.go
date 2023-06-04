@@ -7,8 +7,10 @@ import (
 	"os"
 	"os/signal"
 
+	datastore "github.com/akakream/sailorsailor/datastore"
 	"github.com/akakream/sailorsailor/identity"
 	"github.com/akakream/sailorsailor/p2p"
+	"golang.org/x/net/context"
 )
 
 func (e apiError) Error() string {
@@ -27,33 +29,57 @@ func makeHTTPHandler(f apiFunc) http.HandlerFunc {
 	}
 }
 
-func NewServer(port string, serverType string, dataPath string) *Server {
+func NewServer(port string, serverType string, dataPath string, useDatastore bool) *Server {
 
-	// ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	// datastoreTopic := "globaldb-net"
 
 	var servertype ServerType
 	var client p2p.P2PClient
-	var id identity.Identity
+	var id *identity.Identity
+	var ds *datastore.Datastore
+
 	if serverType == "libp2p" {
 		servertype = ServerTypeLibp2p
 		id, err := identity.NewIdentity(dataPath)
 		if err != nil {
-			client = p2p.NewLibP2PClient()
+			client = p2p.NewLibP2PClient(ctx)
 		} else {
-			client = p2p.NewLibP2PClient(id)
+			client = p2p.NewLibP2PClient(ctx, id)
 		}
 	} else {
 		servertype = ServerTypeIpfs
 		client = p2p.NewIpfsP2PClient(&p2p.Config{Port: "5001"})
 	}
 
+	if useDatastore {
+		if id == nil {
+			log.Fatalln("Please provide a data path to use datastore")
+		} else {
+			/*
+				datas, err := datastore.NewDatastore(ctx, client, dataPath)
+				if err != nil {
+					log.Fatal(err)
+				}
+				ds = datas
+				// Use a special pubsub topic to avoid disconnecting
+				// from globaldb peers.
+				client.Sub(datastoreTopic)
+			*/
+		}
+	} else {
+		ds = nil
+	}
+
 	return &Server{
-		port:       port,
-		Servertype: servertype,
-		DataPath:   dataPath,
-		Client:     client,
-		Identity:   id,
-		quitch:     make(chan struct{}),
+		port:          port,
+		Servertype:    servertype,
+		DataPath:      dataPath,
+		Client:        client,
+		Identity:      id,
+		Datastore:     ds,
+		quitch:        make(chan struct{}),
+		cancelContext: cancel,
 	}
 }
 
@@ -102,6 +128,8 @@ func (s *Server) gracefullyQuitServer() {
 
 	// Unsub from all topics
 	s.Client.Shutdown()
+	// Cancel the context
+	s.cancelContext()
 }
 
 func (s *Server) listenShutdown() {

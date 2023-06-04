@@ -1,8 +1,10 @@
 package server
 
 import (
+	"context"
 	"net/http"
 
+	"github.com/akakream/sailorsailor/datastore"
 	"github.com/akakream/sailorsailor/identity"
 	"github.com/akakream/sailorsailor/p2p"
 )
@@ -22,12 +24,14 @@ const (
 )
 
 type Server struct {
-	port       string
-	Servertype ServerType
-	DataPath   string
-	quitch     chan struct{}
-	Client     p2p.P2PClient
-	Identity   identity.Identity
+	port          string
+	Servertype    ServerType
+	DataPath      string
+	quitch        chan struct{}
+	cancelContext context.CancelFunc
+	Client        p2p.P2PClient
+	Identity      *identity.Identity
+	Datastore     *datastore.Datastore
 }
 
 type PubRequestBody struct {

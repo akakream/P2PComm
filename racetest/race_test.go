@@ -1,13 +1,16 @@
 package racetest
 
 import (
+	"context"
 	"testing"
 
 	p2p "github.com/akakream/sailorsailor/p2p"
 )
 
 func TestRaceConditionLibp2p(t *testing.T) {
-	c := p2p.NewLibP2PClient()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	c := p2p.NewLibP2PClient(ctx)
 
 	topicName1 := "randomTopic1"
 	topicName2 := "randomTopic2"

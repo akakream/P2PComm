@@ -12,7 +12,7 @@ import (
 )
 
 func TestHandleSubscribe(t *testing.T) {
-	s := NewServer("dummy", "libp2p", "dummy")
+	s := NewServer("dummy", "libp2p", "dummy", false)
 	// go s.Client.Start()
 	rr := httptest.NewRecorder()
 
@@ -47,7 +47,7 @@ func TestHandleSubscribe(t *testing.T) {
 }
 
 func TestHandleSubscribeWithPrivateKey(t *testing.T) {
-	s := NewServer("dummy", "libp2p", "./data")
+	s := NewServer("dummy", "libp2p", "./data", false)
 	// go s.Client.Start()
 	rr := httptest.NewRecorder()
 

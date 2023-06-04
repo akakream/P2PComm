@@ -24,20 +24,20 @@ func (c *LibP2PClient) listen(channel chan *pubsub.Message) {
 	}
 }
 
-func NewLibP2PClient(id ...*identity.Identity) *LibP2PClient {
-	ctx := context.Background()
+func NewLibP2PClient(ctx context.Context, id ...*identity.Identity) *LibP2PClient {
 	var host host.Host
-	var err error // How do I avoid doing this?
 	if len(id) == 0 {
-		host, err = libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
+		h, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
 		if err != nil {
 			log.Fatal(err)
 		}
+		host = h
 	} else {
-		host, err = libp2p.New(libp2p.Identity(id[0].PrivKey), libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
+		h, err := libp2p.New(libp2p.Identity(id[0].PrivKey), libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
 		if err != nil {
 			log.Fatal(err)
 		}
+		host = h
 	}
 	log.Println(host.ID())
 	log.Println(host.Addrs())

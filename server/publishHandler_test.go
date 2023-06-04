@@ -14,7 +14,7 @@ type ServerError struct {
 }
 
 func TestHandlePublishWhenNotSubbed(t *testing.T) {
-	s := NewServer("dummy", "libp2p", "dummy")
+	s := NewServer("dummy", "libp2p", "dummy", false)
 	// go s.Client.Start()
 
 	topic := "randomTopic1"
@@ -57,7 +57,7 @@ func TestHandlePublishWhenNotSubbed(t *testing.T) {
 }
 
 func TestHandlePublishWhenSubbed(t *testing.T) {
-	s := NewServer("dummy", "libp2p", "dummy")
+	s := NewServer("dummy", "libp2p", "dummy", false)
 	// go s.Client.Start()
 
 	// Subscribe to topic
