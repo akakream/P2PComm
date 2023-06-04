@@ -1,4 +1,4 @@
-package test
+package racetest
 
 import (
 	"testing"

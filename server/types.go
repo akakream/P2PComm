@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 
+	"github.com/akakream/sailorsailor/identity"
 	"github.com/akakream/sailorsailor/p2p"
 )
 
@@ -23,8 +24,10 @@ const (
 type Server struct {
 	port       string
 	Servertype ServerType
+	DataPath   string
 	quitch     chan struct{}
 	Client     p2p.P2PClient
+	Identity   identity.Identity
 }
 
 type PubRequestBody struct {

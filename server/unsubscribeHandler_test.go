@@ -9,7 +9,7 @@ import (
 )
 
 func TestHandleUnsubscribe(t *testing.T) {
-	s := NewServer("dummy", "libp2p")
+	s := NewServer("dummy", "libp2p", "dummy")
 	// go s.Client.Start()
 
 	topic := "randomTopic1"

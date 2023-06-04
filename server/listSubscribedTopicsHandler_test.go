@@ -8,7 +8,7 @@ import (
 )
 
 func TestHandleListSubscribedTopicsWhenEmpty(t *testing.T) {
-	s := NewServer("dummy", "libp2p")
+	s := NewServer("dummy", "libp2p", "dummy")
 	// go s.Client.Start()
 
 	rr := httptest.NewRecorder()
@@ -36,7 +36,7 @@ func TestHandleListSubscribedTopicsWhenEmpty(t *testing.T) {
 }
 
 func TestHandleListSubscribedTopicsWhenOne(t *testing.T) {
-	s := NewServer("dummy", "libp2p")
+	s := NewServer("dummy", "libp2p", "dummy")
 	// go s.Client.Start()
 
 	topic := "randomTopic1"

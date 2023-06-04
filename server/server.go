@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/akakream/sailorsailor/identity"
 	"github.com/akakream/sailorsailor/p2p"
 )
 
@@ -26,15 +27,21 @@ func makeHTTPHandler(f apiFunc) http.HandlerFunc {
 	}
 }
 
-func NewServer(port string, serverType string) *Server {
+func NewServer(port string, serverType string, dataPath string) *Server {
 
 	// ctx := context.Background()
 
 	var servertype ServerType
 	var client p2p.P2PClient
+	var id identity.Identity
 	if serverType == "libp2p" {
 		servertype = ServerTypeLibp2p
-		client = p2p.NewLibP2PClient()
+		id, err := identity.NewIdentity(dataPath)
+		if err != nil {
+			client = p2p.NewLibP2PClient()
+		} else {
+			client = p2p.NewLibP2PClient(id)
+		}
 	} else {
 		servertype = ServerTypeIpfs
 		client = p2p.NewIpfsP2PClient(&p2p.Config{Port: "5001"})
@@ -43,7 +50,9 @@ func NewServer(port string, serverType string) *Server {
 	return &Server{
 		port:       port,
 		Servertype: servertype,
+		DataPath:   dataPath,
 		Client:     client,
+		Identity:   id,
 		quitch:     make(chan struct{}),
 	}
 }
