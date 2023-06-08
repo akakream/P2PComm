@@ -32,7 +32,7 @@ func makeHTTPHandler(f apiFunc) http.HandlerFunc {
 func NewServer(port string, serverType string, dataPath string, useDatastore bool) *Server {
 
 	ctx, cancel := context.WithCancel(context.Background())
-	// datastoreTopic := "globaldb-net"
+	datastoreTopic := "globaldb-net"
 
 	var servertype ServerType
 	var client p2p.P2PClient
@@ -56,16 +56,19 @@ func NewServer(port string, serverType string, dataPath string, useDatastore boo
 		if id == nil {
 			log.Fatalln("Please provide a data path to use datastore")
 		} else {
-			/*
-				datas, err := datastore.NewDatastore(ctx, client, dataPath)
-				if err != nil {
-					log.Fatal(err)
-				}
-				ds = datas
-				// Use a special pubsub topic to avoid disconnecting
-				// from globaldb peers.
-				client.Sub(datastoreTopic)
-			*/
+			p2pClient, ok := client.(*p2p.LibP2PClient)
+			if !ok {
+				log.Fatalln("cannot convert p2p client interface to struct.")
+			}
+
+			datas, err := datastore.NewDatastore(ctx, p2pClient, dataPath)
+			if err != nil {
+				log.Fatal(err)
+			}
+			ds = datas
+			// Use a special pubsub topic to avoid disconnecting
+			// from globaldb peers.
+			client.Sub(datastoreTopic)
 		}
 	} else {
 		ds = nil

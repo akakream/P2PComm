@@ -19,7 +19,7 @@ type Datastore struct {
 	topicName string
 }
 
-func NewDatastore(ctx context.Context, pubsubClient p2p.LibP2PClient, datapath string) (*Datastore, error) {
+func NewDatastore(ctx context.Context, pubsubClient *p2p.LibP2PClient, datapath string) (*Datastore, error) {
 	store, err := badger.NewDatastore(datapath, &badger.DefaultOptions)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (d *Datastore) Shutdown() {
 	d.Crdt.Close()
 }
 
-func setupCRDT(ctx context.Context, pubsubClient p2p.LibP2PClient, topicName string, store *badger.Datastore) (*crdt.Datastore, error) {
+func setupCRDT(ctx context.Context, pubsubClient *p2p.LibP2PClient, topicName string, store *badger.Datastore) (*crdt.Datastore, error) {
 	pubsubBC, err := crdt.NewPubSubBroadcaster(ctx, pubsubClient.Ps, topicName)
 	if err != nil {
 		return nil, err
