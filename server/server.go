@@ -2,14 +2,16 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 
-	datastore "github.com/akakream/sailorsailor/datastore"
 	"github.com/akakream/sailorsailor/identity"
 	"github.com/akakream/sailorsailor/p2p"
+	store "github.com/akakream/sailorsailor/store"
+	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"golang.org/x/net/context"
 )
 
@@ -32,20 +34,20 @@ func makeHTTPHandler(f apiFunc) http.HandlerFunc {
 func NewServer(port string, serverType string, dataPath string, useDatastore bool) *Server {
 
 	ctx, cancel := context.WithCancel(context.Background())
-	datastoreTopic := "globaldb-net"
 
 	var servertype ServerType
 	var client p2p.P2PClient
 	var id *identity.Identity
-	var ds *datastore.Datastore
+	var ds *store.Datastore
+	var liteIPFS *ipfslite.Peer
 
 	if serverType == "libp2p" {
 		servertype = ServerTypeLibp2p
 		id, err := identity.NewIdentity(dataPath)
 		if err != nil {
-			client = p2p.NewLibP2PClient(ctx)
+			client = p2p.NewLibP2PClient(ctx, false)
 		} else {
-			client = p2p.NewLibP2PClient(ctx, id)
+			client = p2p.NewLibP2PClient(ctx, useDatastore, id)
 		}
 	} else {
 		servertype = ServerTypeIpfs
@@ -56,22 +58,13 @@ func NewServer(port string, serverType string, dataPath string, useDatastore boo
 		if id == nil {
 			log.Fatalln("Please provide a data path to use datastore")
 		} else {
-			p2pClient, ok := client.(*p2p.LibP2PClient)
-			if !ok {
-				log.Fatalln("cannot convert p2p client interface to struct.")
-			}
-
-			datas, err := datastore.NewDatastore(ctx, p2pClient, dataPath)
+			d, l, err := setupDataStoreAndIPFSLite(ctx, client, dataPath)
 			if err != nil {
 				log.Fatal(err)
 			}
-			ds = datas
-			// Use a special pubsub topic to avoid disconnecting
-			// from globaldb peers.
-			client.Sub(datastoreTopic)
+			ds = d
+			liteIPFS = l
 		}
-	} else {
-		ds = nil
 	}
 
 	return &Server{
@@ -81,9 +74,39 @@ func NewServer(port string, serverType string, dataPath string, useDatastore boo
 		Client:        client,
 		Identity:      id,
 		Datastore:     ds,
+		LiteIPFS:      liteIPFS,
 		quitch:        make(chan struct{}),
 		cancelContext: cancel,
 	}
+}
+
+func setupDataStoreAndIPFSLite(ctx context.Context, client p2p.P2PClient, dataPath string) (*store.Datastore, *ipfslite.Peer, error) {
+	datastoreTopic := "globaldb-net"
+	// Initialize the datastore
+	p2pClient, ok := client.(*p2p.LibP2PClient)
+	if !ok {
+		return nil, nil, errors.New("cannot convert p2p client interface to struct")
+	}
+
+	ds, err := store.NewDatastore(ctx, dataPath)
+	if err != nil {
+		return nil, nil, err
+	}
+	// Use a special pubsub topic to avoid disconnecting
+	// from globaldb peers.
+	client.Sub(datastoreTopic)
+
+	liteipfs, err := ipfslite.New(ctx, ds.Store, nil, p2pClient.Host, p2pClient.Dht, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = ds.SetupCRDT(ctx, p2pClient, liteipfs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return ds, liteipfs, nil
 }
 
 func (s *Server) Start() {

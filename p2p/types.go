@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	shell "github.com/ipfs/go-ipfs-api"
+	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 )
@@ -19,6 +20,7 @@ type P2PClient interface {
 
 type LibP2PClient struct {
 	Host             host.Host
+	Dht              *dual.DHT
 	Ps               *pubsub.PubSub
 	mu               sync.RWMutex
 	SubscribedTopics map[string]*LibP2PTopic

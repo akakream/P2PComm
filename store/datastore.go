@@ -1,12 +1,12 @@
-package datastore
+package store
 
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/akakream/sailorsailor/p2p"
+	ipfslite "github.com/hsanjuan/ipfs-lite"
 	ds "github.com/ipfs/go-datastore"
 	badger "github.com/ipfs/go-ds-badger"
 	crdt "github.com/ipfs/go-ds-crdt"
@@ -19,23 +19,16 @@ type Datastore struct {
 	topicName string
 }
 
-func NewDatastore(ctx context.Context, pubsubClient *p2p.LibP2PClient, datapath string) (*Datastore, error) {
+func NewDatastore(ctx context.Context, datapath string) (*Datastore, error) {
 	store, err := badger.NewDatastore(datapath, &badger.DefaultOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	topicName := "globaldb-topic"
-	crdt, err := setupCRDT(ctx, pubsubClient, topicName, store)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	return &Datastore{
 		datapath:  datapath,
 		Store:     store,
-		Crdt:      crdt,
-		topicName: topicName,
+		topicName: "globaldb-topic",
 	}, nil
 }
 
@@ -44,10 +37,10 @@ func (d *Datastore) Shutdown() {
 	d.Crdt.Close()
 }
 
-func setupCRDT(ctx context.Context, pubsubClient *p2p.LibP2PClient, topicName string, store *badger.Datastore) (*crdt.Datastore, error) {
-	pubsubBC, err := crdt.NewPubSubBroadcaster(ctx, pubsubClient.Ps, topicName)
+func (d *Datastore) SetupCRDT(ctx context.Context, pubsubClient *p2p.LibP2PClient, liteipfs *ipfslite.Peer) error {
+	pubsubBC, err := crdt.NewPubSubBroadcaster(ctx, pubsubClient.Ps, d.topicName)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	opts := crdt.DefaultOptions()
@@ -61,10 +54,11 @@ func setupCRDT(ctx context.Context, pubsubClient *p2p.LibP2PClient, topicName st
 	}
 
 	// Add ipfs-lite
-	crdt, err := crdt.New(store, ds.NewKey("crdt"), nil, pubsubBC, opts)
+	crdt, err := crdt.New(d.Store, ds.NewKey("crdt"), liteipfs, pubsubBC, opts)
 	if err != nil {
-		return nil, err
+		return err
 	}
+	d.Crdt = crdt
 
-	return crdt, nil
+	return nil
 }

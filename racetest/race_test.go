@@ -10,7 +10,7 @@ import (
 func TestRaceConditionLibp2p(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	c := p2p.NewLibP2PClient(ctx)
+	c := p2p.NewLibP2PClient(ctx, false)
 
 	topicName1 := "randomTopic1"
 	topicName2 := "randomTopic2"

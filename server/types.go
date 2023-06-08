@@ -4,9 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/akakream/sailorsailor/datastore"
 	"github.com/akakream/sailorsailor/identity"
 	"github.com/akakream/sailorsailor/p2p"
+	store "github.com/akakream/sailorsailor/store"
+	ipfslite "github.com/hsanjuan/ipfs-lite"
 )
 
 type apiError struct {
@@ -31,7 +32,8 @@ type Server struct {
 	cancelContext context.CancelFunc
 	Client        p2p.P2PClient
 	Identity      *identity.Identity
-	Datastore     *datastore.Datastore
+	Datastore     *store.Datastore
+	LiteIPFS      *ipfslite.Peer
 }
 
 type PubRequestBody struct {

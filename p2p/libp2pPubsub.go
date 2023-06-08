@@ -8,9 +8,12 @@ import (
 	"time"
 
 	"github.com/akakream/sailorsailor/identity"
+	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/multiformats/go-multiaddr"
 )
 
 func (c *LibP2PClient) listen(channel chan *pubsub.Message) {
@@ -24,20 +27,35 @@ func (c *LibP2PClient) listen(channel chan *pubsub.Message) {
 	}
 }
 
-func NewLibP2PClient(ctx context.Context, id ...*identity.Identity) *LibP2PClient {
+func NewLibP2PClient(ctx context.Context, liteipfs bool, id ...*identity.Identity) *LibP2PClient {
 	var host host.Host
-	if len(id) == 0 {
-		h, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
+	var dht *dual.DHT
+	listen, err := multiaddr.NewMultiaddr("/ip4/0.0.0.0/tcp/33123")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if liteipfs {
+		h, d, err := ipfslite.SetupLibp2p(ctx, id[0].PrivKey, nil, []multiaddr.Multiaddr{listen}, nil, ipfslite.Libp2pOptionsExtra...)
 		if err != nil {
 			log.Fatal(err)
 		}
 		host = h
+		dht = d
 	} else {
-		h, err := libp2p.New(libp2p.Identity(id[0].PrivKey), libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
-		if err != nil {
-			log.Fatal(err)
+		if len(id) == 0 {
+			h, err := libp2p.New(libp2p.ListenAddrStrings(listen.String()))
+			if err != nil {
+				log.Fatal(err)
+			}
+			host = h
+		} else {
+			h, err := libp2p.New(libp2p.Identity(id[0].PrivKey), libp2p.ListenAddrStrings(listen.String()))
+			if err != nil {
+				log.Fatal(err)
+			}
+			host = h
 		}
-		host = h
 	}
 	log.Println(host.ID())
 	log.Println(host.Addrs())
@@ -49,6 +67,7 @@ func NewLibP2PClient(ctx context.Context, id ...*identity.Identity) *LibP2PClien
 
 	return &LibP2PClient{
 		Host:             host,
+		Dht:              dht,
 		Ps:               ps,
 		SubscribedTopics: make(map[string]*LibP2PTopic),
 		Channel:          make(chan *pubsub.Message, 20),
@@ -149,6 +168,9 @@ func (c *LibP2PClient) Shutdown() {
 	c.mu.RUnlock()
 	// close(c.Channel)
 	// log.Println("Closing channel.")
+	if c.Dht != nil {
+		c.Dht.Close()
+	}
 	c.Host.Close()
 	log.Println("Closing host.")
 	time.Sleep(2 * time.Second)
