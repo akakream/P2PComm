@@ -133,6 +133,7 @@ func (c *LibP2PClient) Sub(topicName string) error {
 				fmt.Printf("fetching subscription message error: %v.\n", err)
 				break
 			}
+			c.Host.ConnManager().TagPeer(msg.ReceivedFrom, "keep", 100)
 			c.Channel <- msg
 		}
 	}()

@@ -58,3 +58,12 @@ type UnsubResponseBody struct {
 type ListTopicsRequestBody struct {
 	Topics []string `json:"topics"`
 }
+
+type Key struct {
+	Key string `json:"key"`
+}
+
+type KeyValue struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}

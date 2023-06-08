@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log"
@@ -12,7 +13,6 @@ import (
 	"github.com/akakream/sailorsailor/p2p"
 	store "github.com/akakream/sailorsailor/store"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
-	"golang.org/x/net/context"
 )
 
 func (e apiError) Error() string {
@@ -43,11 +43,12 @@ func NewServer(port string, serverType string, dataPath string, useDatastore boo
 
 	if serverType == "libp2p" {
 		servertype = ServerTypeLibp2p
-		id, err := identity.NewIdentity(dataPath)
+		identity, err := identity.NewIdentity(dataPath)
 		if err != nil {
 			client = p2p.NewLibP2PClient(ctx, false)
 		} else {
-			client = p2p.NewLibP2PClient(ctx, useDatastore, id)
+			client = p2p.NewLibP2PClient(ctx, useDatastore, identity)
+			id = identity
 		}
 	} else {
 		servertype = ServerTypeIpfs
@@ -106,6 +107,14 @@ func setupDataStoreAndIPFSLite(ctx context.Context, client p2p.P2PClient, dataPa
 		return nil, nil, err
 	}
 
+	/*
+		bstr, _ := multiaddr.NewMultiaddr("/ip4/94.130.135.167/tcp/33123/ipfs/12D3KooWFta2AE7oiK1ioqjVAKajUJauZWfeM7R413K7ARtHRDAu")
+		inf, _ := peer.AddrInfoFromP2pAddr(bstr)
+		list := append(ipfslite.DefaultBootstrapPeers(), *inf)
+		liteipfs.Bootstrap(list)
+		p2pClient.Host.ConnManager().TagPeer(inf.ID, "keep", 100)
+	*/
+
 	return ds, liteipfs, nil
 }
 
@@ -120,6 +129,13 @@ func (s *Server) Start() {
 	http.HandleFunc("/unsub", makeHTTPHandler(s.handleUnsubscribe))
 	// Return all susbcribed topics
 	http.HandleFunc("/topics", makeHTTPHandler(s.handleListSubscribedTopics))
+
+	// List the keys stored in the datastore
+	http.HandleFunc("/list", makeHTTPHandler(s.handleList))
+	// Get the key stored in the datastore
+	http.HandleFunc("/get", makeHTTPHandler(s.handleGet))
+	// Put a key-value pair in the datastore
+	http.HandleFunc("/put", makeHTTPHandler(s.handlePut))
 
 	go s.Client.Start()
 	go s.listenShutdown()
