@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -168,6 +169,14 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) error {
 func (s *Server) gracefullyQuitServer() {
 	log.Println("Shutting down the server")
 
+	// Shutdown the datastore
+	if s.Datastore != nil {
+		err := s.Datastore.Shutdown()
+		if err != nil {
+			err = fmt.Errorf("error while shutting down the server gracefully: %w", err)
+			log.Fatal(err)
+		}
+	}
 	// Unsub from all topics
 	s.Client.Shutdown()
 	// Cancel the context

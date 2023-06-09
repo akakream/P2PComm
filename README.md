@@ -25,3 +25,32 @@ ipfs daemon --enable-pubsub-experiment
 ```
 make test
 ```
+
+## P2P client endpoints
+
+| Endpoint  | Description                  |
+| --------- | ---------------------------- |
+| `/pub`    | Publish a message to a topic |
+| `/sub`    | Subscribe to a topic         |
+| `/unsub`  | Unsubscribe from a topic     |
+| `/topics` | Return all susbcribed topics |
+
+## Datastore endpoints
+
+| Endpoint | Description                           |
+| -------- | ------------------------------------- |
+| `/list`  | List the keys stored in the datastore |
+| `/get`   | Get the key stored in the datastore   |
+| `/put`   | Put a key-value pair in the datastore |
+
+## Other endpoints
+
+| Endpoint  | Description                       |
+| --------- | --------------------------------- |
+| `/health` | Get health information for server |
+
+## TODO
+
+- Create a PutHook for keys: [https://github.com/ipfs/go-ds-crdt/issues/178](https://github.com/ipfs/go-ds-crdt/issues/178) This can be useful.
+
+- Fix the `/get` key calls. Remove the body and add as parameter.

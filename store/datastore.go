@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/akakream/sailorsailor/p2p"
@@ -32,9 +33,18 @@ func NewDatastore(ctx context.Context, datapath string) (*Datastore, error) {
 	}, nil
 }
 
-func (d *Datastore) Shutdown() {
-	d.Store.Close()
-	d.Crdt.Close()
+func (d *Datastore) Shutdown() error {
+	log.Println("Shutting down the CRDT")
+	err := d.Crdt.Close()
+	if err != nil {
+		return fmt.Errorf("error while shutting down the CRDT: %w", err)
+	}
+	log.Println("Shutting down the Store")
+	err = d.Store.Close()
+	if err != nil {
+		return fmt.Errorf("error while shutting down the Datastore: %w", err)
+	}
+	return nil
 }
 
 func (d *Datastore) SetupCRDT(ctx context.Context, pubsubClient *p2p.LibP2PClient, liteipfs *ipfslite.Peer) error {

@@ -162,18 +162,22 @@ func (c *LibP2PClient) Unsub(topicName string) ([]string, error) {
 }
 
 func (c *LibP2PClient) Shutdown() {
+	if c.Dht != nil {
+		log.Println("Closing DHT...")
+		c.Dht.Close()
+	}
+
 	c.mu.RLock()
+	log.Println("Unsubscribing from the topics...")
 	for _, topic := range c.SubscribedTopics {
 		c.Unsub(topic.Topic.String())
 	}
 	c.mu.RUnlock()
+
 	// close(c.Channel)
 	// log.Println("Closing channel.")
-	if c.Dht != nil {
-		c.Dht.Close()
-	}
+	log.Println("Closing host...")
 	c.Host.Close()
-	log.Println("Closing host.")
 	time.Sleep(2 * time.Second)
 }
 
