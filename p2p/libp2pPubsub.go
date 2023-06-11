@@ -57,8 +57,8 @@ func NewLibP2PClient(ctx context.Context, liteipfs bool, id ...*identity.Identit
 			host = h
 		}
 	}
-	log.Println(host.ID())
-	log.Println(host.Addrs())
+	log.Println("HOST ID: ", host.ID())
+	log.Println("HOST ADDR: ", host.Addrs())
 
 	ps, err := pubsub.NewGossipSub(ctx, host)
 	if err != nil {

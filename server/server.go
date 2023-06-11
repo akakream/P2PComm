@@ -14,6 +14,8 @@ import (
 	"github.com/akakream/sailorsailor/p2p"
 	store "github.com/akakream/sailorsailor/store"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/multiformats/go-multiaddr"
 )
 
 func (e apiError) Error() string {
@@ -108,13 +110,14 @@ func setupDataStoreAndIPFSLite(ctx context.Context, client p2p.P2PClient, dataPa
 		return nil, nil, err
 	}
 
-	/*
-		bstr, _ := multiaddr.NewMultiaddr("/ip4/94.130.135.167/tcp/33123/ipfs/12D3KooWFta2AE7oiK1ioqjVAKajUJauZWfeM7R413K7ARtHRDAu")
-		inf, _ := peer.AddrInfoFromP2pAddr(bstr)
-		list := append(ipfslite.DefaultBootstrapPeers(), *inf)
-		liteipfs.Bootstrap(list)
-		p2pClient.Host.ConnManager().TagPeer(inf.ID, "keep", 100)
-	*/
+	log.Println("Bootstrapping...")
+	bstr, _ := multiaddr.NewMultiaddr("/ip4/192.168.1.104/tcp/33123/ipfs/QmSUMoRCqq6TDM6Bvck29ydbrwQSkJANUxV5WE2uoGL9g2")
+	inf, _ := peer.AddrInfoFromP2pAddr(bstr)
+	list := append(ipfslite.DefaultBootstrapPeers(), *inf)
+	log.Println("Bootstrapping following peers: ", list)
+	liteipfs.Bootstrap(list)
+	p2pClient.Host.ConnManager().TagPeer(inf.ID, "keep", 100)
+	log.Println("Bootstrapping done.")
 
 	return ds, liteipfs, nil
 }
