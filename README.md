@@ -51,6 +51,17 @@ To pass all the tests start the ipfs daemon with the `--enable-pubsub-experiment
 | --------- | --------------------------------- |
 | `/health` | Get health information for server |
 
+## Caveats
+
+On some machines the QUIC Receive Buffer size may be low. This creates problems while bootstrapping nodes.
+Increase the buffer size using the following:
+
+```
+sysctl -w net.core.rmem_max=2500000
+```
+
+For more information, check out [https://github.com/quic-go/quic-go/wiki/UDP-Receive-Buffer-Size](https://github.com/quic-go/quic-go/wiki/UDP-Receive-Buffer-Size)
+
 ## TODO
 
 - Create a PutHook for keys: [https://github.com/ipfs/go-ds-crdt/issues/178](https://github.com/ipfs/go-ds-crdt/issues/178) This can be useful.
