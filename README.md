@@ -26,6 +26,8 @@ ipfs daemon --enable-pubsub-experiment
 make test
 ```
 
+To pass all the tests start the ipfs daemon with the `--enable-pubsub-experiment` flag.
+
 ## P2P client endpoints
 
 | Endpoint  | Description                  |
