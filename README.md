@@ -67,3 +67,5 @@ For more information, check out [https://github.com/quic-go/quic-go/wiki/UDP-Rec
 - Create a PutHook for keys: [https://github.com/ipfs/go-ds-crdt/issues/178](https://github.com/ipfs/go-ds-crdt/issues/178) This can be useful.
 
 - Fix the `/get` key calls. Remove the body and add as parameter.
+
+- Add some kind of ui for making http calls easier. Maybe go-swagger? [https://github.com/go-swagger/go-swagger](https://github.com/go-swagger/go-swagger)
