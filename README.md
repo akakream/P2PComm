@@ -71,3 +71,5 @@ For more information, check out [https://github.com/quic-go/quic-go/wiki/UDP-Rec
 - Fix the `/get` key calls. Remove the body and add as parameter.
 
 - Remove hardcoded paths like '.data/datastore'
+
+- Add some kind of ui for making http calls easier. Maybe go-swagger? [https://github.com/go-swagger/go-swagger](https://github.com/go-swagger/go-swagger)
