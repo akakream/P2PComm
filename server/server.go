@@ -113,6 +113,7 @@ func setupDataStoreAndIPFSLite(ctx context.Context, client p2p.P2PClient, dataPa
 	}
 
 	log.Println("Bootstrapping...")
+	// TODO: Remove default bootstrappers as the network should be private?
 	peersList := ipfslite.DefaultBootstrapPeers()
 
 	// Read peers from the peerstore
