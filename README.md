@@ -64,6 +64,10 @@ For more information, check out [https://github.com/quic-go/quic-go/wiki/UDP-Rec
 
 ## TODO
 
+- Change Badger datastore to pebble: [https://ipfscluster.io/documentation/guides/datastore/](https://ipfscluster.io/documentation/guides/datastore/)
+
 - Create a PutHook for keys: [https://github.com/ipfs/go-ds-crdt/issues/178](https://github.com/ipfs/go-ds-crdt/issues/178) This can be useful.
 
 - Fix the `/get` key calls. Remove the body and add as parameter.
+
+- Remove hardcoded paths like '.data/datastore'

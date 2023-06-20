@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 
 	"github.com/akakream/sailorsailor/identity"
 	"github.com/akakream/sailorsailor/p2p"
@@ -62,7 +64,7 @@ func NewServer(port string, serverType string, dataPath string, useDatastore boo
 		if id == nil {
 			log.Fatalln("Please provide a data path to use datastore")
 		} else {
-			d, l, err := setupDataStoreAndIPFSLite(ctx, client, dataPath)
+			d, l, err := setupDataStoreAndIPFSLite(ctx, client, filepath.Join(dataPath, "datastore"))
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -111,12 +113,27 @@ func setupDataStoreAndIPFSLite(ctx context.Context, client p2p.P2PClient, dataPa
 	}
 
 	log.Println("Bootstrapping...")
-	bstr, _ := multiaddr.NewMultiaddr("/ip4/192.168.1.104/tcp/33123/ipfs/QmSUMoRCqq6TDM6Bvck29ydbrwQSkJANUxV5WE2uoGL9g2")
-	inf, _ := peer.AddrInfoFromP2pAddr(bstr)
-	list := append(ipfslite.DefaultBootstrapPeers(), *inf)
-	log.Println("Bootstrapping following peers: ", list)
-	liteipfs.Bootstrap(list)
-	p2pClient.Host.ConnManager().TagPeer(inf.ID, "keep", 100)
+	peersList := ipfslite.DefaultBootstrapPeers()
+
+	// Read peers from the peerstore
+	peersFile, err := os.OpenFile("./data/peerstore", os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		log.Printf("reading peerstore file is unsuccessfull. Add at least one peer to connect with others. Error: %v", err)
+	}
+	defer peersFile.Close()
+
+	scanner := bufio.NewScanner(peersFile)
+	for scanner.Scan() {
+		peerAddress := scanner.Text()
+		log.Printf("Adding peer %s to peer list...", peerAddress)
+		bstr, _ := multiaddr.NewMultiaddr(peerAddress)
+		inf, _ := peer.AddrInfoFromP2pAddr(bstr)
+		peersList = append(peersList, *inf)
+		p2pClient.Host.ConnManager().TagPeer(inf.ID, "keep", 100)
+	}
+	log.Println("Bootstrapping following peers: ", peersList)
+
+	liteipfs.Bootstrap(peersList)
 	log.Println("Bootstrapping done.")
 
 	return ds, liteipfs, nil
