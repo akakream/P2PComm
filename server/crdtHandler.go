@@ -8,11 +8,7 @@ import (
 	"github.com/ipfs/go-datastore/query"
 )
 
-func (s *Server) handleList(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != http.MethodGet {
-		return apiError{Err: "invalid method", Status: http.StatusMethodNotAllowed}
-	}
-
+func (s *Server) handleCrdtGet(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.TODO()
 
 	// Logic

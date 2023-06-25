@@ -12,11 +12,14 @@ import (
 	"os/signal"
 	"path/filepath"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+
 	"github.com/akakream/sailorsailor/identity"
 	"github.com/akakream/sailorsailor/p2p"
 	store "github.com/akakream/sailorsailor/store"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -141,29 +144,28 @@ func setupDataStoreAndIPFSLite(ctx context.Context, client p2p.P2PClient, dataPa
 }
 
 func (s *Server) Start() {
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
 	// Publish a message to a topic
-	http.HandleFunc("/health", makeHTTPHandler(s.handleHealth))
+	r.Get("/health", makeHTTPHandler(s.handleHealth))
 	// Publish a message to a topic
-	http.HandleFunc("/pub", makeHTTPHandler(s.handlePublish))
+	r.Post("/pub", makeHTTPHandler(s.handlePublish))
 	// Subscribe to a topic
-	http.HandleFunc("/sub", makeHTTPHandler(s.handleSubscribe))
+	r.Post("/sub", makeHTTPHandler(s.handleSubscribe))
 	// Unsubscribe from a topic
-	http.HandleFunc("/unsub", makeHTTPHandler(s.handleUnsubscribe))
+	r.Post("/unsub", makeHTTPHandler(s.handleUnsubscribe))
 	// Return all susbcribed topics
-	http.HandleFunc("/topics", makeHTTPHandler(s.handleListSubscribedTopics))
+	r.Get("/topics", makeHTTPHandler(s.handleListSubscribedTopics))
 
-	// List the keys stored in the datastore
-	http.HandleFunc("/list", makeHTTPHandler(s.handleList))
-	// Get the key stored in the datastore
-	http.HandleFunc("/get", makeHTTPHandler(s.handleGet))
-	// Put a key-value pair in the datastore
-	http.HandleFunc("/put", makeHTTPHandler(s.handlePut))
+	r.Get("/crdt", makeHTTPHandler(s.handleCrdtGet))
+	r.Get("/crdt/{key}", makeHTTPHandler(s.handleGetCrdtByID))
+	r.Post("/crdt", makeHTTPHandler(s.handleCrdtPost))
 
 	go s.Client.Start()
 	go s.listenShutdown()
 
 	go func() {
-		if err := http.ListenAndServe(":"+s.port, nil); err != http.ErrServerClosed {
+		if err := http.ListenAndServe(":"+s.port, r); err != http.ErrServerClosed {
 			log.Fatalf("HTTP server ListenAndServe Error: %v", err)
 		}
 	}()
@@ -172,7 +174,6 @@ func (s *Server) Start() {
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) error {
-
 	var servertype string
 	if s.Servertype == ServerTypeLibp2p {
 		servertype = "libp2p"

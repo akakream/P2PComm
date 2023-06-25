@@ -11,7 +11,7 @@ make build
 ## Run
 
 ```
-./bin/app server --port=3000 --servertype=libp2p --datastore
+./bin/app server --port=3001 --servertype=libp2p --datastore
 ```
 
 Start ipfs daemon with pubsub enabled in another terminal to run the ipfs pubsub.
@@ -39,11 +39,11 @@ To pass all the tests start the ipfs daemon with the `--enable-pubsub-experiment
 
 ## Datastore endpoints
 
-| Endpoint | Description                           |
-| -------- | ------------------------------------- |
-| `/list`  | List the keys stored in the datastore |
-| `/get`   | Get the key stored in the datastore   |
-| `/put`   | Put a key-value pair in the datastore |
+| Endpoint      | Description                            |
+| ------------- | -------------------------------------- |
+| `/crdt`       | Get all keys stored in the datastore   |
+| `/crdt/{key}` | Get the key stored in the datastore    |
+| `/crdt`       | Post a key-value pair in the datastore |
 
 ## Other endpoints
 
