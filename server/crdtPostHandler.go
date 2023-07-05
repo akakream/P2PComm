@@ -36,7 +36,7 @@ func (s *Server) handleCrdtPost(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.TODO()
 
 	// Logic
-	putKeyValue(ctx, s, key, string(value))
+	err = putKeyValue(ctx, s, key, string(value))
 	if err != nil {
 		return apiError{Err: err.Error(), Status: http.StatusInternalServerError}
 	}
