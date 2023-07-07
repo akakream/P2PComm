@@ -160,6 +160,7 @@ func (s *Server) Start() {
 	r.Get("/crdt", makeHTTPHandler(s.handleCrdtGet))
 	r.Get("/crdt/{key}", makeHTTPHandler(s.handleGetCrdtByID))
 	r.Post("/crdt", makeHTTPHandler(s.handleCrdtPost))
+	r.Delete("/crdt/{key}", makeHTTPHandler(s.handleCrdtDelete))
 
 	go s.Client.Start()
 	go s.listenShutdown()
