@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -31,36 +30,34 @@ func makeHTTPHandler(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := f(w, r); err != nil {
 			if e, ok := err.(apiError); ok {
-				writeJSON(w, e.Status, e)
+				err := writeJSON(w, e.Status, e)
+				if err != nil {
+					log.Fatal(err)
+				}
 				return
 			}
-			writeJSON(w, http.StatusInternalServerError, apiError{Err: "internal server error", Status: http.StatusInternalServerError})
+			err := writeJSON(w, http.StatusInternalServerError, apiError{Err: "internal server error", Status: http.StatusInternalServerError})
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 }
 
-func NewServer(port string, serverType string, dataPath string, useDatastore bool) *Server {
-
+func NewServer(port string, dataPath string, useDatastore bool) *Server {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	var servertype ServerType
-	var client p2p.P2PClient
+	var client *p2p.LibP2PClient
 	var id *identity.Identity
 	var ds *store.Datastore
 	var liteIPFS *ipfslite.Peer
 
-	if serverType == "libp2p" {
-		servertype = ServerTypeLibp2p
-		identity, err := identity.NewIdentity(dataPath)
-		if err != nil {
-			client = p2p.NewLibP2PClient(ctx, false)
-		} else {
-			client = p2p.NewLibP2PClient(ctx, useDatastore, identity)
-			id = identity
-		}
+	identity, err := identity.NewIdentity(dataPath)
+	if err != nil {
+		client = p2p.NewLibP2PClient(ctx, false)
 	} else {
-		servertype = ServerTypeIpfs
-		client = p2p.NewIpfsP2PClient(&p2p.Config{Port: "5001"})
+		client = p2p.NewLibP2PClient(ctx, useDatastore, identity)
+		id = identity
 	}
 
 	if useDatastore {
@@ -78,7 +75,6 @@ func NewServer(port string, serverType string, dataPath string, useDatastore boo
 
 	return &Server{
 		port:          port,
-		Servertype:    servertype,
 		DataPath:      dataPath,
 		Client:        client,
 		Identity:      id,
@@ -89,13 +85,9 @@ func NewServer(port string, serverType string, dataPath string, useDatastore boo
 	}
 }
 
-func setupDataStoreAndIPFSLite(ctx context.Context, client p2p.P2PClient, dataPath string) (*store.Datastore, *ipfslite.Peer, error) {
+func setupDataStoreAndIPFSLite(ctx context.Context, client *p2p.LibP2PClient, dataPath string) (*store.Datastore, *ipfslite.Peer, error) {
 	datastoreTopic := "globaldb-net"
 	// Initialize the datastore
-	p2pClient, ok := client.(*p2p.LibP2PClient)
-	if !ok {
-		return nil, nil, errors.New("cannot convert p2p client interface to struct")
-	}
 
 	ds, err := store.NewDatastore(ctx, dataPath)
 	if err != nil {
@@ -103,14 +95,17 @@ func setupDataStoreAndIPFSLite(ctx context.Context, client p2p.P2PClient, dataPa
 	}
 	// Use a special pubsub topic to avoid disconnecting
 	// from globaldb peers.
-	client.Sub(datastoreTopic)
-
-	liteipfs, err := ipfslite.New(ctx, ds.Store, nil, p2pClient.Host, p2pClient.Dht, nil)
+	err = client.Sub(datastoreTopic)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	err = ds.SetupCRDT(ctx, p2pClient, liteipfs)
+	liteipfs, err := ipfslite.New(ctx, ds.Store, nil, client.Host, client.Dht, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = ds.SetupCRDT(ctx, client, liteipfs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -133,7 +128,7 @@ func setupDataStoreAndIPFSLite(ctx context.Context, client p2p.P2PClient, dataPa
 		bstr, _ := multiaddr.NewMultiaddr(peerAddress)
 		inf, _ := peer.AddrInfoFromP2pAddr(bstr)
 		peersList = append(peersList, *inf)
-		p2pClient.Host.ConnManager().TagPeer(inf.ID, "keep", 100)
+		client.Host.ConnManager().TagPeer(inf.ID, "keep", 100)
 	}
 	log.Println("Bootstrapping following peers: ", peersList)
 
@@ -162,6 +157,8 @@ func (s *Server) Start() {
 	r.Post("/crdt", makeHTTPHandler(s.handleCrdtPost))
 	r.Delete("/crdt/{key}", makeHTTPHandler(s.handleCrdtDelete))
 
+	r.Get("/peers", makeHTTPHandler(s.handlePeersGet))
+
 	go s.Client.Start()
 	go s.listenShutdown()
 
@@ -175,18 +172,11 @@ func (s *Server) Start() {
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) error {
-	var servertype string
-	if s.Servertype == ServerTypeLibp2p {
-		servertype = "libp2p"
-	} else {
-		servertype = "ipfs"
-	}
-
 	if r.Method != http.MethodGet {
 		return apiError{Err: "invalid method", Status: http.StatusMethodNotAllowed}
 	}
 
-	return writeJSON(w, http.StatusOK, servertype+" - OK")
+	return writeJSON(w, http.StatusOK, "OK")
 }
 
 func (s *Server) gracefullyQuitServer() {

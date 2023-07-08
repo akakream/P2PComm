@@ -170,7 +170,10 @@ func (c *LibP2PClient) Shutdown() {
 	c.mu.RLock()
 	log.Println("Unsubscribing from the topics...")
 	for _, topic := range c.SubscribedTopics {
-		c.Unsub(topic.Topic.String())
+		_, err := c.Unsub(topic.Topic.String())
+		if err != nil {
+			log.Printf("Could not unsubscribe from %s", topic.Topic.String())
+		}
 	}
 	c.mu.RUnlock()
 
