@@ -149,9 +149,10 @@ func (c *LibP2PClient) Unsub(topicName string) ([]string, error) {
 	if topicExists {
 		topic.Subscription.Cancel()
 		topic.Topic.Close()
-		c.mu.Lock()
+		// TODO: THIS BLOCKS, I DONT KNOW WHY???
+		//c.mu.Lock()
 		delete(c.SubscribedTopics, topicName)
-		c.mu.Unlock()
+		//c.mu.Unlock()
 		log.Printf("Unsubscribed from the topic: %s", topicName)
 	} else {
 		log.Printf("There is no subscription for the topic: %s", topicName)

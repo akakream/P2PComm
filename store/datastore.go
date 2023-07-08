@@ -34,13 +34,16 @@ func NewDatastore(ctx context.Context, datapath string) (*Datastore, error) {
 }
 
 func (d *Datastore) Shutdown() error {
-	log.Println("Shutting down the CRDT")
-	err := d.Crdt.Close()
-	if err != nil {
-		return fmt.Errorf("error while shutting down the CRDT: %w", err)
-	}
+	/*
+		// TODO: Issue https://github.com/ipfs/go-ds-crdt/issues/202
+		log.Println("Shutting down the CRDT")
+		err := d.Crdt.Close()
+		if err != nil {
+			return fmt.Errorf("error while shutting down the CRDT: %w", err)
+		}
+	*/
 	log.Println("Shutting down the Store")
-	err = d.Store.Close()
+	err := d.Store.Close()
 	if err != nil {
 		return fmt.Errorf("error while shutting down the Datastore: %w", err)
 	}
