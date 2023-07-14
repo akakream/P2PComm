@@ -8,8 +8,13 @@ func (s *Server) handlePeersGet(w http.ResponseWriter, r *http.Request) error {
 	// ctx := context.TODO()
 
 	// Logic
-	ps := s.Client.Host.Peerstore()
-	peers := ps.Peers()
+	// ps := s.Client.Host.Peerstore()
+    // peers := ps.Peers()
+    peers := s.Client.Ps.ListPeers("globaldb-net")
+    var peerIDs []string
+    for _, peer := range peers {
+        peerIDs = append(peerIDs, peer.String())
+    }
 
 	/*
 		if err != nil {
@@ -18,9 +23,9 @@ func (s *Server) handlePeersGet(w http.ResponseWriter, r *http.Request) error {
 	*/
 
 	resp := struct {
-		Peers string `json:"peers"`
+		Peers []string `json:"peers"`
 	}{
-		Peers: peers.String(),
+		Peers: peerIDs,
 	}
 
 	return writeJSON(w, http.StatusOK, resp)
