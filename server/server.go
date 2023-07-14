@@ -158,6 +158,7 @@ func (s *Server) Start() {
 	r.Delete("/crdt/{key}", makeHTTPHandler(s.handleCrdtDelete))
 
 	r.Get("/peers", makeHTTPHandler(s.handlePeersGet))
+	r.Get("/identity", makeHTTPHandler(s.handleIdentityGet))
 
 	go s.Client.Start()
 	go s.listenShutdown()
