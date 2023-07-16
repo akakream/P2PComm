@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/akakream/sailorsailor/identity"
+	"github.com/akakream/sailorsailor/utils"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
@@ -20,8 +21,15 @@ func (c *LibP2PClient) listen(channel chan *pubsub.Message) {
 	for {
 		select {
 		case msg := <-channel:
-			log.Println(string(msg.Data))
-			log.Println(msg.Topic)
+			msgEmoji, err := utils.Emoji("\\U0001f4e8")
+			if err != nil {
+				panic(err)
+			}
+            log.Printf("%s Topic:%s Data:%s From:%s.\n", 
+                        msgEmoji, 
+                        *msg.Message.Topic, 
+                        string(msg.Message.Data), 
+                        msg.ReceivedFrom.String())
 		default:
 		}
 	}

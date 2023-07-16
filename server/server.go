@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -110,30 +111,11 @@ func setupDataStoreAndIPFSLite(ctx context.Context, client *p2p.LibP2PClient, da
 		return nil, nil, err
 	}
 
-	log.Println("Bootstrapping...")
-	// peersList := ipfslite.DefaultBootstrapPeers()
-	peersList := []peer.AddrInfo{}
+    // Ping every 20 seconds to keep the topic alive
+    go ping(ctx, client, datastoreTopic)
+    // client.Host.ConnManager().Protect("peerid", "keep")
 
-	// Read peers from the peerstore
-	peersFile, err := os.OpenFile("./data/peerstore", os.O_RDWR|os.O_CREATE, 0666)
-	if err != nil {
-		log.Printf("reading peerstore file is unsuccessfull. Add at least one peer to connect with others. Error: %v", err)
-	}
-	defer peersFile.Close()
-
-	scanner := bufio.NewScanner(peersFile)
-	for scanner.Scan() {
-		peerAddress := scanner.Text()
-		log.Printf("Adding peer %s to peer list...", peerAddress)
-		bstr, _ := multiaddr.NewMultiaddr(peerAddress)
-		inf, _ := peer.AddrInfoFromP2pAddr(bstr)
-		peersList = append(peersList, *inf)
-		client.Host.ConnManager().TagPeer(inf.ID, "keep", 100)
-	}
-	log.Println("Bootstrapping following peers: ", peersList)
-
-	liteipfs.Bootstrap(peersList)
-	log.Println("Bootstrapping done.")
+    bootstrap(client, liteipfs)
 
 	return ds, liteipfs, nil
 }
@@ -203,6 +185,45 @@ func (s *Server) listenShutdown() {
 	<-sigint
 	s.gracefullyQuitServer()
 	close(s.quitch)
+}
+
+func bootstrap(client *p2p.LibP2PClient, liteipfs *ipfslite.Peer) {
+	log.Println("Bootstrapping...")
+	// peersList := ipfslite.DefaultBootstrapPeers()
+	peersList := []peer.AddrInfo{}
+
+	// Read peers from the peerstore
+	peersFile, err := os.OpenFile("./data/peerstore", os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		log.Printf("reading peerstore file is unsuccessfull. Add at least one peer to connect with others. Error: %v", err)
+	}
+	defer peersFile.Close()
+
+	scanner := bufio.NewScanner(peersFile)
+	for scanner.Scan() {
+		peerAddress := scanner.Text()
+		log.Printf("Adding peer %s to peer list...", peerAddress)
+		bstr, _ := multiaddr.NewMultiaddr(peerAddress)
+		inf, _ := peer.AddrInfoFromP2pAddr(bstr)
+		peersList = append(peersList, *inf)
+		client.Host.ConnManager().TagPeer(inf.ID, "keep", 100)
+	}
+	log.Println("Bootstrapping following peers: ", peersList)
+
+	liteipfs.Bootstrap(peersList)
+	log.Println("Bootstrapping done.")
+}
+
+func ping(ctx context.Context, client *p2p.LibP2PClient, topic string) {
+    for {
+        select {
+        case <-ctx.Done():
+            return
+        default:
+            client.Pub(topic, "ping")
+            time.Sleep(20 * time.Second)
+        }
+    }
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) error {
