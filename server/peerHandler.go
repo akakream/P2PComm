@@ -11,6 +11,7 @@ func (s *Server) handlePeersGet(w http.ResponseWriter, r *http.Request) error {
 	// ps := s.Client.Host.Peerstore()
     // peers := ps.Peers()
     peers := s.Client.Ps.ListPeers("globaldb-net")
+    peers = append(peers, s.Client.Host.ID())
     var peerIDs []string
     for _, peer := range peers {
         peerIDs = append(peerIDs, peer.String())
