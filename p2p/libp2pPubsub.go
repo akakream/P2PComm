@@ -142,6 +142,7 @@ func (c *LibP2PClient) Sub(topicName string) error {
 				break
 			}
 			c.Host.ConnManager().TagPeer(msg.ReceivedFrom, "keep", 100)
+            c.Host.ConnManager().Protect(msg.ReceivedFrom, "keep")
 			c.Channel <- msg
 		}
 	}()

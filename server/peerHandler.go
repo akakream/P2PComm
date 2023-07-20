@@ -1,7 +1,12 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
+
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
 func (s *Server) handlePeersGet(w http.ResponseWriter, r *http.Request) error {
@@ -10,13 +15,20 @@ func (s *Server) handlePeersGet(w http.ResponseWriter, r *http.Request) error {
 	// Logic
 	// ps := s.Client.Host.Peerstore()
     // peers := ps.Peers()
+    //
+    /*
     peers := s.Client.Ps.ListPeers("globaldb-net")
     peers = append(peers, s.Client.Host.ID())
     var peerIDs []string
     for _, peer := range peers {
         peerIDs = append(peerIDs, peer.String())
     }
-
+    */
+    peers := connectedPeers(s.Client.Host)
+    peers = append(peers, &peer.AddrInfo{
+        ID:    s.Client.Host.ID(),
+        Addrs: s.Client.Host.Addrs(),
+    })
 	/*
 		if err != nil {
 			return apiError{Err: err.Error(), Status: http.StatusInternalServerError}
@@ -24,12 +36,24 @@ func (s *Server) handlePeersGet(w http.ResponseWriter, r *http.Request) error {
 	*/
 
 	resp := struct {
-		Peers []string `json:"peers"`
+		Peers []*peer.AddrInfo `json:"peers"`
 	}{
-		Peers: peerIDs,
+		Peers: peers,
 	}
 
 	return writeJSON(w, http.StatusOK, resp)
+}
+
+
+func connectedPeers(h host.Host) []*peer.AddrInfo {
+	var pinfos []*peer.AddrInfo
+	for _, c := range h.Network().Conns() {
+		pinfos = append(pinfos, &peer.AddrInfo{
+			ID:    c.RemotePeer(),
+			Addrs: []multiaddr.Multiaddr{c.RemoteMultiaddr()},
+		})
+	}
+	return pinfos
 }
 
 func (s *Server) handleIdentityGet(w http.ResponseWriter, r *http.Request) error {
