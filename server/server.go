@@ -167,7 +167,7 @@ func (s *Server) gracefullyQuitServer() {
 
 	// Shutdown the datastore
 	if s.Datastore != nil {
-		err := s.Datastore.Shutdown()
+		err := s.Datastore.Shutdown(s.cancelContext)
 		if err != nil {
 			err = fmt.Errorf("error while shutting down the server gracefully: %w", err)
 			log.Fatal(err)
@@ -175,8 +175,8 @@ func (s *Server) gracefullyQuitServer() {
 	}
 	// Unsub from all topics
 	s.Client.Shutdown()
-	// Cancel the context
-	s.cancelContext()
+	// Canceling the context in the s.Datastore.Shutdown
+	// s.cancelContext()
 }
 
 func (s *Server) listenShutdown() {
