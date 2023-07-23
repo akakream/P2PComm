@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/akakream/sailorsailor/utils"
 	"github.com/ipfs/go-datastore/query"
 )
 
@@ -31,13 +32,14 @@ func getKeyValues(ctx context.Context, s *Server) (*[]KeyValue, error) {
 		if r.Error != nil {
 			return nil, r.Error
 		}
+        key := utils.TrimTheSlashInTheBeginning(r.Key)
 		pair := KeyValue{
-			Key:   r.Key,
+			Key:   key,
 			Value: string(r.Value),
 		}
 		result = append(result, pair)
 
-		fmt.Printf("[%s] -> %s\n", r.Key, string(r.Value))
+		fmt.Printf("[%s] -> %s\n", key, string(r.Value))
 	}
 
 	return &result, nil

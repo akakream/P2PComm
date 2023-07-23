@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/akakream/sailorsailor/identity"
+	"github.com/akakream/sailorsailor/utils"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
@@ -20,8 +21,15 @@ func (c *LibP2PClient) listen(channel chan *pubsub.Message) {
 	for {
 		select {
 		case msg := <-channel:
-			log.Println(string(msg.Data))
-			log.Println(msg.Topic)
+			msgEmoji, err := utils.Emoji("\\U0001f4e8")
+			if err != nil {
+				panic(err)
+			}
+            log.Printf("%s Topic:%s Data:%s From:%s.\n", 
+                        msgEmoji, 
+                        *msg.Message.Topic, 
+                        string(msg.Message.Data), 
+                        msg.ReceivedFrom.String())
 		default:
 		}
 	}
@@ -134,6 +142,7 @@ func (c *LibP2PClient) Sub(topicName string) error {
 				break
 			}
 			c.Host.ConnManager().TagPeer(msg.ReceivedFrom, "keep", 100)
+            c.Host.ConnManager().Protect(msg.ReceivedFrom, "keep")
 			c.Channel <- msg
 		}
 	}()
@@ -149,9 +158,10 @@ func (c *LibP2PClient) Unsub(topicName string) ([]string, error) {
 	if topicExists {
 		topic.Subscription.Cancel()
 		topic.Topic.Close()
-		c.mu.Lock()
+		// TODO: THIS BLOCKS, I DONT KNOW WHY???
+		//c.mu.Lock()
 		delete(c.SubscribedTopics, topicName)
-		c.mu.Unlock()
+		//c.mu.Unlock()
 		log.Printf("Unsubscribed from the topic: %s", topicName)
 	} else {
 		log.Printf("There is no subscription for the topic: %s", topicName)
@@ -170,7 +180,10 @@ func (c *LibP2PClient) Shutdown() {
 	c.mu.RLock()
 	log.Println("Unsubscribing from the topics...")
 	for _, topic := range c.SubscribedTopics {
-		c.Unsub(topic.Topic.String())
+		_, err := c.Unsub(topic.Topic.String())
+		if err != nil {
+			log.Printf("Could not unsubscribe from %s", topic.Topic.String())
+		}
 	}
 	c.mu.RUnlock()
 

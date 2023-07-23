@@ -17,20 +17,12 @@ type apiError struct {
 
 type apiFunc func(http.ResponseWriter, *http.Request) error
 
-type ServerType byte
-
-const (
-	ServerTypeIpfs ServerType = iota
-	ServerTypeLibp2p
-)
-
 type Server struct {
 	port          string
-	Servertype    ServerType
 	DataPath      string
 	quitch        chan struct{}
 	cancelContext context.CancelFunc
-	Client        p2p.P2PClient
+	Client        *p2p.LibP2PClient
 	Identity      *identity.Identity
 	Datastore     *store.Datastore
 	LiteIPFS      *ipfslite.Peer

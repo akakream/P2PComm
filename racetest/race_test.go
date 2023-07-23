@@ -2,6 +2,7 @@ package racetest
 
 import (
 	"context"
+	"log"
 	"testing"
 
 	p2p "github.com/akakream/sailorsailor/p2p"
@@ -15,20 +16,18 @@ func TestRaceConditionLibp2p(t *testing.T) {
 	topicName1 := "randomTopic1"
 	topicName2 := "randomTopic2"
 
-	go c.Sub(topicName1)
-	go c.Sub(topicName2)
-
-	c.Shutdown()
-}
-
-func TestRaceConditionIPFS(t *testing.T) {
-	c := p2p.NewIpfsP2PClient(&p2p.Config{Port: "5001"})
-
-	topicName1 := "randomTopic1"
-	topicName2 := "randomTopic2"
-
-	go c.Sub(topicName1)
-	go c.Sub(topicName2)
+	go func() {
+		err := c.Sub(topicName1)
+		if err != nil {
+			log.Printf("Sub failed with error %v", err)
+		}
+	}()
+	go func() {
+		err := c.Sub(topicName2)
+		if err != nil {
+			log.Printf("Sub failed with error %v", err)
+		}
+	}()
 
 	c.Shutdown()
 }

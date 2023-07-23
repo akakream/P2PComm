@@ -26,10 +26,6 @@ var serverCmd = &cobra.Command{
 		if err != nil {
 			panic(err)
 		}
-		serverType, err := cmd.PersistentFlags().GetString("servertype")
-		if err != nil {
-			panic(err)
-		}
 		dataPath, err := cmd.PersistentFlags().GetString("data")
 		if err != nil {
 			panic(err)
@@ -39,14 +35,13 @@ var serverCmd = &cobra.Command{
 			panic(err)
 		}
 
-		s := server.NewServer(port, serverType, dataPath, useDatastore)
+		s := server.NewServer(port, dataPath, useDatastore)
 		s.Start()
 	},
 }
 
 func init() {
 	serverCmd.PersistentFlags().StringP("port", "p", "3001", "give the port where the server runs")
-	serverCmd.PersistentFlags().StringP("servertype", "s", "libp2p", "give the type of the server: libp2p or ipfs")
 	serverCmd.PersistentFlags().StringP("data", "d", "./data", "give the path to the data folder")
 	serverCmd.PersistentFlags().BoolP("datastore", "t", false, "true if you want to use datastore")
 	rootCmd.AddCommand(serverCmd)
