@@ -13,12 +13,11 @@ import (
 func (s *Server) handleGetCrdtByID(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.TODO()
 	key := chi.URLParam(r, "key")
-	fmt.Println("THIS IS KEY: ", key)
 
 	// Logic
 	value, err := getValue(ctx, s, key)
 	if err != nil {
-		return apiError{Err: err.Error(), Status: http.StatusInternalServerError}
+		return apiError{Err: "Key not found", Status: http.StatusInternalServerError}
 	}
 
 	resp := KeyValue{

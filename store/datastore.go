@@ -56,11 +56,8 @@ func (d *Datastore) SetupCRDT(ctx context.Context, pubsubClient *p2p.LibP2PClien
 
 	opts := crdt.DefaultOptions()
 	opts.RebroadcastInterval = 5 * time.Second
-	opts.PutHook = func(k ds.Key, v []byte) {
-		fmt.Printf("Added: [%s] -> %s\n", k, string(v))
-
-	}
-	opts.DeleteHook = func(k ds.Key) {
+	opts.PutHook = putHookLogicCLosure(pubsubClient.Host.ID().String())
+    opts.DeleteHook = func(k ds.Key) {
 		fmt.Printf("Removed: [%s]\n", k)
 	}
 
@@ -73,3 +70,13 @@ func (d *Datastore) SetupCRDT(ctx context.Context, pubsubClient *p2p.LibP2PClien
 
 	return nil
 }
+
+func putHookLogicCLosure(hostID string) func(ds.Key, []byte) {
+    return func (k ds.Key, v []byte) {
+        fmt.Printf("Added: [%s] -> %s\n", k, string(v))
+        if k.Name() == hostID {
+            fmt.Println("THE KEY IS THE HOST ID")
+        }
+    }
+}
+

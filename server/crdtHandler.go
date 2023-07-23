@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"unicode/utf8"
 
+	"github.com/akakream/sailorsailor/utils"
 	"github.com/ipfs/go-datastore/query"
 )
 
@@ -32,7 +32,7 @@ func getKeyValues(ctx context.Context, s *Server) (*[]KeyValue, error) {
 		if r.Error != nil {
 			return nil, r.Error
 		}
-        key := trimTheSlashInTheBeginning(r.Key)
+        key := utils.TrimTheSlashInTheBeginning(r.Key)
 		pair := KeyValue{
 			Key:   key,
 			Value: string(r.Value),
@@ -43,12 +43,4 @@ func getKeyValues(ctx context.Context, s *Server) (*[]KeyValue, error) {
 	}
 
 	return &result, nil
-}
-
-func trimTheSlashInTheBeginning(key string) string {
-        c, i := utf8.DecodeRuneInString(key)
-        if c == []rune("/")[0] {
-            return key[i:]
-        }
-        return key
 }
