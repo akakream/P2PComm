@@ -2,15 +2,22 @@ package store
 
 import (
 	"context"
+	"encoding/base32"
 	"fmt"
 	"log"
+	"os"
+	"strings"
 	"time"
 
-	"github.com/akakream/sailorsailor/p2p"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
+	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
 	badger "github.com/ipfs/go-ds-badger"
 	crdt "github.com/ipfs/go-ds-crdt"
+	"github.com/joho/godotenv"
+
+	"github.com/akakream/sailorsailor/docker"
+	"github.com/akakream/sailorsailor/p2p"
 )
 
 type Datastore struct {
@@ -34,12 +41,12 @@ func NewDatastore(ctx context.Context, datapath string) (*Datastore, error) {
 }
 
 func (d *Datastore) Shutdown(cancelCtx context.CancelFunc) error {
-    cancelCtx()
-    log.Println("Shutting down the CRDT")
-    err := d.Crdt.Close()
-    if err != nil {
-        return fmt.Errorf("error while shutting down the CRDT: %w", err)
-    }
+	cancelCtx()
+	log.Println("Shutting down the CRDT")
+	err := d.Crdt.Close()
+	if err != nil {
+		return fmt.Errorf("error while shutting down the CRDT: %w", err)
+	}
 	log.Println("Shutting down the Store")
 	err = d.Store.Close()
 	if err != nil {
@@ -48,7 +55,11 @@ func (d *Datastore) Shutdown(cancelCtx context.CancelFunc) error {
 	return nil
 }
 
-func (d *Datastore) SetupCRDT(ctx context.Context, pubsubClient *p2p.LibP2PClient, liteipfs *ipfslite.Peer) error {
+func (d *Datastore) SetupCRDT(
+	ctx context.Context,
+	pubsubClient *p2p.LibP2PClient,
+	liteipfs *ipfslite.Peer,
+) error {
 	pubsubBC, err := crdt.NewPubSubBroadcaster(ctx, pubsubClient.Ps, d.topicName)
 	if err != nil {
 		return err
@@ -57,7 +68,7 @@ func (d *Datastore) SetupCRDT(ctx context.Context, pubsubClient *p2p.LibP2PClien
 	opts := crdt.DefaultOptions()
 	opts.RebroadcastInterval = 5 * time.Second
 	opts.PutHook = putHookLogicCLosure(pubsubClient.Host.ID().String())
-    opts.DeleteHook = func(k ds.Key) {
+	opts.DeleteHook = func(k ds.Key) {
 		fmt.Printf("Removed: [%s]\n", k)
 	}
 
@@ -71,12 +82,45 @@ func (d *Datastore) SetupCRDT(ctx context.Context, pubsubClient *p2p.LibP2PClien
 	return nil
 }
 
+// using docker pull because I need the docker interpretation
 func putHookLogicCLosure(hostID string) func(ds.Key, []byte) {
-    return func (k ds.Key, v []byte) {
-        fmt.Printf("Added: [%s] -> %s\n", k, string(v))
-        if k.Name() == hostID {
-            fmt.Println("THE KEY IS THE HOST ID")
-        }
-    }
+	return func(k ds.Key, v []byte) {
+		fmt.Printf("Added: [%s] -> %s\n", k, string(v))
+		if k.Name() == hostID {
+			log.Println("HOST IMAGE UPDATE")
+			CIDs := strings.Split(string(v), ",")
+			cid := CIDs[len(CIDs)-1]
+			log.Printf("LAST ADDED CID: %s \n", cid)
+
+			// docker pull tag
+			err := godotenv.Load()
+			if err != nil {
+				log.Fatal("Error loading .env file")
+			}
+			ipdr_server := os.Getenv("IPDR_SERVER")
+			dockerizedCid, err := dockerizeCID(cid)
+			image_address := fmt.Sprintf("%s/%s", ipdr_server, dockerizedCid)
+			fmt.Println(image_address)
+			if err := docker.Pull(image_address); err != nil {
+				fmt.Printf("error while pulling the image: %v\n", err)
+			}
+			// "docker pull 127.0.0.1:5005/ciqjjwaeoszdgcaasxmlhjuqnhbctgwijqz64w564lrzeyjezcvbj4y"
+		}
+	}
 }
 
+func dockerizeCID(c string) (string, error) {
+	decodedCid, err := cid.Decode(c)
+	if err != nil {
+		return "", err
+	}
+	decodedHash := []byte(decodedCid.Hash())
+	b32str := base32.StdEncoding.EncodeToString(decodedHash)
+	end := len(b32str)
+	if end > 0 {
+		end = end - 1
+	}
+
+	// remove padding
+	return strings.ToLower(b32str[0:end]), nil
+}

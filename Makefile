@@ -8,7 +8,7 @@ test:
 	go test -v ./... -count=1
 
 vendor:
-	@go mod vendor
+	go mod vendor
 
 lint:
 	golangci-lint run -v ./...
