@@ -101,9 +101,17 @@ func putHookLogicCLosure(hostID string) func(ds.Key, []byte) {
 			dockerizedCid, err := dockerizeCID(cid)
 			image_address := fmt.Sprintf("%s/%s", ipdr_server, dockerizedCid)
 			fmt.Println(image_address)
+
+			start := time.Now()
+
 			if err := docker.Pull(image_address); err != nil {
 				fmt.Printf("error while pulling the image: %v\n", err)
 			}
+
+			t := time.Now()
+			elapsedTime := t.Sub(start)
+			fmt.Printf("Docker pull took %s\n", elapsedTime)
+
 			// "docker pull 127.0.0.1:5005/ciqjjwaeoszdgcaasxmlhjuqnhbctgwijqz64w564lrzeyjezcvbj4y"
 		}
 	}
