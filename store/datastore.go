@@ -67,7 +67,7 @@ func (d *Datastore) SetupCRDT(
 
 	opts := crdt.DefaultOptions()
 	opts.RebroadcastInterval = 5 * time.Second
-	opts.PutHook = putHookLogicCLosure(pubsubClient.Host.ID().String())
+	opts.PutHook = putHookLogicCLosure(d, pubsubClient.Host.ID().String())
 	opts.DeleteHook = func(k ds.Key) {
 		fmt.Printf("Removed: [%s]\n", k)
 	}
@@ -83,7 +83,7 @@ func (d *Datastore) SetupCRDT(
 }
 
 // using docker pull because I need the docker interpretation
-func putHookLogicCLosure(hostID string) func(ds.Key, []byte) {
+func putHookLogicCLosure(d *Datastore, hostID string) func(ds.Key, []byte) {
 	return func(k ds.Key, v []byte) {
 		fmt.Printf("Added: [%s] -> %s\n", k, string(v))
 		if k.Name() == hostID {
@@ -103,18 +103,35 @@ func putHookLogicCLosure(hostID string) func(ds.Key, []byte) {
 			fmt.Println(image_address)
 
 			start := time.Now()
-
 			if err := docker.Pull(image_address); err != nil {
 				fmt.Printf("error while pulling the image: %v\n", err)
 			}
-
 			t := time.Now()
 			elapsedTime := t.Sub(start)
 			fmt.Printf("Docker pull took %s\n", elapsedTime)
 
-			// "docker pull 127.0.0.1:5005/ciqjjwaeoszdgcaasxmlhjuqnhbctgwijqz64w564lrzeyjezcvbj4y"
+			if err := retagImage(d, image_address, cid); err != nil {
+				fmt.Printf("error while retagging the image: %v\n", err)
+			}
 		}
 	}
+}
+
+func retagImage(d *Datastore, image_address string, cid string) error {
+	ctx := context.TODO()
+	oldTag := image_address + ":latest"
+	k := ds.NewKey(cid)
+	v, err := d.Crdt.Get(ctx, k)
+	if err != nil {
+		return err
+	}
+	newTag := string(v)
+	if err != nil {
+		return err
+	}
+	docker.Tag(oldTag, newTag)
+	docker.RemoveTag(oldTag)
+	return nil
 }
 
 func dockerizeCID(c string) (string, error) {

@@ -15,7 +15,7 @@ func (s *Server) handleGetCrdtByID(w http.ResponseWriter, r *http.Request) error
 	key := chi.URLParam(r, "key")
 
 	// Logic
-	value, err := getValue(ctx, s, key)
+	value, err := GetValue(ctx, s, key)
 	if err != nil {
 		return apiError{Err: "Key not found", Status: http.StatusInternalServerError}
 	}
@@ -28,7 +28,7 @@ func (s *Server) handleGetCrdtByID(w http.ResponseWriter, r *http.Request) error
 	return writeJSON(w, http.StatusOK, resp)
 }
 
-func getValue(ctx context.Context, s *Server, key string) ([]byte, error) {
+func GetValue(ctx context.Context, s *Server, key string) ([]byte, error) {
 	k := ds.NewKey(key)
 	v, err := s.Datastore.Crdt.Get(ctx, k)
 	if err != nil {

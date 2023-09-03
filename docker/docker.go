@@ -39,3 +39,40 @@ func Pull(imageName string) error {
 	fmt.Println("Image pulled successfully!")
 	return nil
 }
+
+func Tag(oldTag string, newTag string) error {
+	// Create a new Docker client
+	cli, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		return fmt.Errorf("failed to create Docker client: %v", err)
+	}
+
+	// Set the context for the API request
+	ctx := context.Background()
+
+	err = cli.ImageTag(ctx, oldTag, newTag)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func RemoveTag(tag string) error {
+	// Create a new Docker client
+	cli, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		return fmt.Errorf("failed to create Docker client: %v", err)
+	}
+
+	// Set the context for the API request
+	ctx := context.Background()
+
+	// Define the options for the pull operation
+	options := types.ImageRemoveOptions{}
+
+	_, err = cli.ImageRemove(ctx, tag, options)
+	if err != nil {
+		return err
+	}
+	return nil
+}

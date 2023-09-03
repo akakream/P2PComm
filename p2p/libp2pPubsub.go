@@ -7,14 +7,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/akakream/sailorsailor/identity"
-	"github.com/akakream/sailorsailor/utils"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/multiformats/go-multiaddr"
+
+	"github.com/akakream/sailorsailor/identity"
+	"github.com/akakream/sailorsailor/utils"
 )
 
 func (c *LibP2PClient) listen(channel chan *pubsub.Message) {
@@ -25,11 +26,11 @@ func (c *LibP2PClient) listen(channel chan *pubsub.Message) {
 			if err != nil {
 				panic(err)
 			}
-            log.Printf("%s Topic:%s Data:%s From:%s.\n", 
-                        msgEmoji, 
-                        *msg.Message.Topic, 
-                        string(msg.Message.Data), 
-                        msg.ReceivedFrom.String())
+			log.Printf("%s Topic:%s Data:%s From:%s.\n",
+				msgEmoji,
+				*msg.Message.Topic,
+				string(msg.Message.Data),
+				msg.ReceivedFrom.String())
 		default:
 		}
 	}
@@ -44,7 +45,13 @@ func NewLibP2PClient(ctx context.Context, liteipfs bool, id ...*identity.Identit
 	}
 
 	if liteipfs {
-		h, d, err := ipfslite.SetupLibp2p(ctx, id[0].PrivKey, nil, []multiaddr.Multiaddr{listen}, nil, ipfslite.Libp2pOptionsExtra...)
+		h, d, err := ipfslite.SetupLibp2p(
+			ctx,
+			id[0].PrivKey,
+			nil,
+			[]multiaddr.Multiaddr{listen},
+			nil,
+			ipfslite.Libp2pOptionsExtra...)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -130,7 +137,11 @@ func (c *LibP2PClient) Sub(topicName string) error {
 		}
 
 		c.mu.Lock()
-		c.SubscribedTopics[topicName] = &LibP2PTopic{Subscription: subscription, Topic: topic, PubHistory: make([]string, 0)}
+		c.SubscribedTopics[topicName] = &LibP2PTopic{
+			Subscription: subscription,
+			Topic:        topic,
+			PubHistory:   make([]string, 0),
+		}
 		c.mu.Unlock()
 
 		wg.Done()
@@ -142,7 +153,7 @@ func (c *LibP2PClient) Sub(topicName string) error {
 				break
 			}
 			c.Host.ConnManager().TagPeer(msg.ReceivedFrom, "keep", 100)
-            c.Host.ConnManager().Protect(msg.ReceivedFrom, "keep")
+			c.Host.ConnManager().Protect(msg.ReceivedFrom, "keep")
 			c.Channel <- msg
 		}
 	}()
@@ -159,9 +170,9 @@ func (c *LibP2PClient) Unsub(topicName string) ([]string, error) {
 		topic.Subscription.Cancel()
 		topic.Topic.Close()
 		// TODO: THIS BLOCKS, I DONT KNOW WHY???
-		//c.mu.Lock()
+		// c.mu.Lock()
 		delete(c.SubscribedTopics, topicName)
-		//c.mu.Unlock()
+		// c.mu.Unlock()
 		log.Printf("Unsubscribed from the topic: %s", topicName)
 	} else {
 		log.Printf("There is no subscription for the topic: %s", topicName)
