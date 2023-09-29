@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/akakream/sailorsailor/utils"
 	"github.com/ipfs/go-datastore/query"
+
+	"github.com/akakream/sailorsailor/utils"
 )
 
 func (s *Server) handleCrdtGet(w http.ResponseWriter, r *http.Request) error {
@@ -32,7 +33,7 @@ func getKeyValues(ctx context.Context, s *Server) (*[]KeyValue, error) {
 		if r.Error != nil {
 			return nil, r.Error
 		}
-        key := utils.TrimTheSlashInTheBeginning(r.Key)
+		key := utils.TrimTheSlashInTheBeginning(r.Key)
 		pair := KeyValue{
 			Key:   key,
 			Value: string(r.Value),
