@@ -103,7 +103,7 @@ func putHookLogicCLosure(d *Datastore, hostID string) func(ds.Key, []byte) {
 			fmt.Println(image_address)
 
 			start := time.Now()
-			if err := docker.Pull(image_address); err != nil {
+			if err := docker.PullCmd(image_address); err != nil {
 				fmt.Printf("error while pulling the image: %v\n", err)
 			}
 			t := time.Now()

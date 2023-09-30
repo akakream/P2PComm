@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"fmt"
+	"os/exec"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -29,6 +30,17 @@ func Pull(imageName string) error {
 	defer resp.Close()
 
 	fmt.Println("Image pulled successfully!")
+	return nil
+}
+
+func PullCmd(imageName string) error {
+	command := fmt.Sprintf("docker pull %s", imageName)
+	cmd := exec.Command(command)
+
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
