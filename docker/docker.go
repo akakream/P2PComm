@@ -3,8 +3,6 @@ package docker
 import (
 	"context"
 	"fmt"
-	"io"
-	"os"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -12,7 +10,7 @@ import (
 
 func Pull(imageName string) error {
 	// Create a new Docker client
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return fmt.Errorf("failed to create Docker client: %v", err)
 	}
@@ -29,12 +27,6 @@ func Pull(imageName string) error {
 		return fmt.Errorf("failed to pull image %s: %v", imageName, err)
 	}
 	defer resp.Close()
-
-	// Copy the response output to stdout for progress information (optional)
-	_, err = io.Copy(os.Stdout, resp)
-	if err != nil {
-		return fmt.Errorf("failed to copy response: %v", err)
-	}
 
 	fmt.Println("Image pulled successfully!")
 	return nil
