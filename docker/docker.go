@@ -34,8 +34,7 @@ func Pull(imageName string) error {
 }
 
 func PullCmd(imageName string) error {
-	command := fmt.Sprintf("docker pull %s", imageName)
-	cmd := exec.Command(command)
+	cmd := exec.Command("docker", "pull", imageName)
 
 	err := cmd.Run()
 	if err != nil {
