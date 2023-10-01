@@ -102,14 +102,9 @@ func putHookLogicCLosure(d *Datastore, hostID string) func(ds.Key, []byte) {
 			image_address := fmt.Sprintf("%s/%s", ipdr_server, dockerizedCid)
 			fmt.Println(image_address)
 
-			start := time.Now()
 			if err := docker.PullCmd(image_address); err != nil {
 				fmt.Printf("error while pulling the image: %v\n", err)
 			}
-			t := time.Now()
-			elapsedTime := t.Sub(start)
-			fmt.Printf("Docker pull took %s\n", elapsedTime)
-
 			if err := retagImage(d, image_address, cid); err != nil {
 				fmt.Printf("error while retagging the image: %v\n", err)
 			}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -34,12 +35,18 @@ func Pull(imageName string) error {
 }
 
 func PullCmd(imageName string) error {
+	start := time.Now()
 	cmd := exec.Command("docker", "pull", imageName)
 
 	err := cmd.Run()
 	if err != nil {
 		return err
 	}
+
+	t := time.Now()
+	elapsedTime := t.Sub(start)
+	fmt.Printf("Docker pull took %s\n", elapsedTime)
+
 	return nil
 }
 
