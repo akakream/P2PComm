@@ -103,7 +103,7 @@ func (c *LibP2PClient) Pub(topicName string, data string) ([]string, error) {
 		return nil, ErrSubscriptionDoesNotExist
 	}
 
-	log.Println("Publishing...")
+	// log.Println("Publishing...")
 	ctx := context.Background()
 	if err := topic.Topic.Publish(ctx, []byte(data)); err != nil {
 		log.Printf("Publish failed: %v.\n", err)
@@ -112,7 +112,7 @@ func (c *LibP2PClient) Pub(topicName string, data string) ([]string, error) {
 	topic.mu.Lock()
 	topic.PubHistory = append(topic.PubHistory, data)
 	topic.mu.Unlock()
-	log.Println("Finished publishing.")
+	// log.Println("Finished publishing.")
 	return topic.PubHistory, nil
 }
 
