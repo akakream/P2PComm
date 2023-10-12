@@ -5,6 +5,7 @@ import (
 	"encoding/base32"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -100,16 +101,43 @@ func putHookLogicCLosure(d *Datastore, hostID string) func(ds.Key, []byte) {
 			ipdr_server := os.Getenv("IPDR_SERVER")
 			dockerizedCid, err := dockerizeCID(cid)
 			image_address := fmt.Sprintf("%s/%s", ipdr_server, dockerizedCid)
-			fmt.Println(image_address)
+			log.Println(image_address)
 
 			if err := docker.PullCmd(image_address); err != nil {
-				fmt.Printf("error while pulling the image: %v\n", err)
+				log.Printf("error while pulling the image: %v\n", err)
 			}
 			if err := retagImage(d, image_address, cid); err != nil {
-				fmt.Printf("error while retagging the image: %v\n", err)
+				log.Printf("error while retagging the image: %v\n", err)
+			}
+			if err := pinImage(cid); err != nil {
+				log.Printf("error while pinning the image: %v\n", err)
 			}
 		}
 	}
+}
+
+func pinImage(cid string) error {
+	url := fmt.Sprintf("http://%s/pin/%s", os.Getenv("MULTIPLATFORM2IPFS_URL"), cid)
+
+	req, err := http.NewRequest("POST", url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Check response
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf(
+			"Non-OK HTTP status from the api with status code %d",
+			resp.StatusCode,
+		)
+	}
+
+	return nil
 }
 
 func retagImage(d *Datastore, image_address string, cid string) error {
