@@ -15,22 +15,24 @@ import (
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/akakream/sailorsailor/identity"
-	"github.com/akakream/sailorsailor/utils"
 )
 
 func (c *LibP2PClient) listen(channel chan *pubsub.Message) {
 	for {
 		select {
 		case msg := <-channel:
-			msgEmoji, err := utils.Emoji("\\U0001f4e8")
-			if err != nil {
-				panic(err)
-			}
-			log.Printf("%s Topic:%s Data:%s From:%s.\n",
-				msgEmoji,
-				*msg.Message.Topic,
-				string(msg.Message.Data),
-				msg.ReceivedFrom.String())
+			_ = msg
+			/*
+				msgEmoji, err := utils.Emoji("\\U0001f4e8")
+				if err != nil {
+					panic(err)
+				}
+					log.Printf("%s Topic:%s Data:%s From:%s.\n",
+						msgEmoji,
+						*msg.Message.Topic,
+						string(msg.Message.Data),
+						msg.ReceivedFrom.String())
+			*/
 		default:
 		}
 	}
