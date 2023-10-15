@@ -34,6 +34,7 @@ func (c *LibP2PClient) listen(channel chan *pubsub.Message) {
 						msg.ReceivedFrom.String())
 			*/
 		default:
+			time.Sleep(1 * time.Second)
 		}
 	}
 }
